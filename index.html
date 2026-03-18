@@ -532,7 +532,7 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:12px;color:var(--text3)">Ver ocupación al:</span>
-          <input type="date" id="mapaFecha" style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:6px 10px;font-size:13px;" onchange="renderMapaFecha(this.value)">
+          <input type="date" id="mapaFecha" style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:6px 10px;font-size:13px;cursor:pointer;z-index:10;position:relative;">
           <button class="btn btn-ghost btn-sm" onclick="renderMapaFecha()">Hoy</button>
         </div>
       </div>
@@ -1495,6 +1495,13 @@ function showNotif(msg, type='success') {
 }
 function openModal(id) { document.getElementById(id)?.classList.add('open'); }
 function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+// Event listener para el selector de fecha del mapa
+document.addEventListener('change', function(e) {
+  if (e.target && e.target.id === 'mapaFecha') {
+    renderMapa(e.target.value);
+  }
+});
+
 document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => { if(e.target===el) closeModal(el.id); });
 });
