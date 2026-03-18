@@ -298,6 +298,54 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
   #section-caja > div:last-child { grid-template-columns: 1fr !important; }
 }
 
+/* ===== PUNTUACION ===== */
+.score-badge { display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:12px;font-weight:700; }
+.score-10,.score-9 { background:rgba(5,150,105,0.2);color:#34d399; }
+.score-8,.score-7 { background:rgba(59,130,246,0.2);color:var(--accent2); }
+.score-6,.score-5 { background:rgba(217,119,6,0.2);color:#fbbf24; }
+.score-4,.score-3,.score-2,.score-1 { background:rgba(220,38,38,0.2);color:#f87171; }
+.score-0,.score-null { background:var(--surface2);color:var(--text3); }
+.stars { display:flex;gap:2px; }
+.star { font-size:16px;cursor:pointer;transition:transform 0.1s; }
+.star:hover { transform:scale(1.2); }
+
+/* ===== GRILLA ===== */
+.grilla-table { border-collapse: collapse; font-size: 12px; min-width: 100%; }
+.grilla-table th { 
+  background: var(--surface2); color: var(--text3); font-size: 10px; 
+  text-transform: uppercase; letter-spacing: 0.5px; padding: 6px 4px;
+  border: 1px solid var(--border); white-space: nowrap; min-width: 34px; text-align: center;
+}
+.grilla-table th.today-col { background: rgba(59,130,246,0.2); color: var(--accent2); }
+.grilla-table td.cama-label { 
+  font-size: 11px; color: var(--text2); padding: 4px 10px; 
+  border: 1px solid var(--border); white-space: nowrap; background: var(--surface2);
+  position: sticky; left: 0; z-index: 2; min-width: 120px;
+}
+.grilla-table td.grilla-cell {
+  border: 1px solid var(--border); padding: 2px; height: 28px; min-width: 34px;
+  cursor: pointer; position: relative; vertical-align: middle;
+}
+.grilla-cell.gc-free { background: transparent; }
+.grilla-cell.gc-occupied { background: rgba(59,130,246,0.25); }
+.grilla-cell.gc-confirmed { background: rgba(13,148,136,0.2); }
+.grilla-cell.gc-checkout { background: rgba(100,116,139,0.12); }
+.grilla-cell.gc-today { border-left: 2px solid var(--accent) !important; }
+.grilla-cell-label {
+  font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%; padding: 0 2px; color: var(--text); font-weight: 500;
+}
+.grilla-span {
+  position: absolute; top: 2px; left: 0; right: 0; bottom: 2px;
+  border-radius: 3px; display: flex; align-items: center; padding: 0 4px;
+  font-size: 9px; font-weight: 600; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; cursor: pointer; z-index: 1;
+}
+.grilla-span.checkin { background: rgba(59,130,246,0.5); color: white; }
+.grilla-span.confirmada { background: rgba(13,148,136,0.5); color: white; }
+.grilla-span.checkout { background: rgba(100,116,139,0.3); color: var(--text2); }
+.grilla-hab-header td { background: var(--surface3) !important; color: var(--text); font-weight: 600; font-size: 11px; padding: 5px 10px; border: 1px solid var(--border2); }
+
 /* ===== TOOLTIP ===== */
 .tooltip-wrap { position: relative; }
 .tooltip-wrap:hover .tooltip-box { opacity: 1; pointer-events: all; }
@@ -381,6 +429,9 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
       <div class="nav-item" onclick="showSection('mapa');closeSidebar()" id="nav-mapa">
         <span class="icon">🛏</span> Mapa de Camas
       </div>
+      <div class="nav-item" onclick="showSection('grilla');closeSidebar()" id="nav-grilla">
+        <span class="icon">📊</span> Grilla de Reservas
+      </div>
       <div class="nav-item" onclick="showSection('reservas');closeSidebar()" id="nav-reservas">
         <span class="icon">📅</span> Reservas
       </div>
@@ -400,6 +451,9 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
       </div>
       <div class="nav-item admin-only" onclick="showSection('caja');closeSidebar()" id="nav-caja" style="display:none;">
         <span class="icon">💰</span> Caja Diaria
+      </div>
+      <div class="nav-item admin-only" onclick="showSection('listanegra');closeSidebar()" id="nav-listanegra" style="display:none;">
+        <span class="icon">🚫</span> Lista Negra
       </div>
       <div class="nav-item admin-only" onclick="showSection('usuarios');closeSidebar()" id="nav-usuarios" style="display:none;">
         <span class="icon">👥</span> Usuarios
@@ -478,8 +532,8 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span style="font-size:12px;color:var(--text3)">Ver ocupación al:</span>
-          <input type="date" id="mapaFecha" style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:6px 10px;font-size:13px;" onchange="renderMapa(this.value)">
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('mapaFecha').value=today();renderMapa()">Hoy</button>
+          <input type="date" id="mapaFecha" style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:6px 10px;font-size:13px;" onchange="renderMapaFecha(this.value)">
+          <button class="btn btn-ghost btn-sm" onclick="renderMapaFecha()">Hoy</button>
         </div>
       </div>
       <div class="rooms-grid" id="roomsGrid"></div>
@@ -560,7 +614,7 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
           </div>
         </div>
         <table>
-          <thead><tr><th>Nombre</th><th>DNI/Pasaporte</th><th>Nac.</th><th>Teléfono</th><th>Email</th><th>Estadías</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>Nombre</th><th>DNI/Pasaporte</th><th>Nac.</th><th>Teléfono</th><th>Email</th><th>Estadías</th><th>Score</th><th>Acciones</th></tr></thead>
           <tbody id="tablaHuespedes"></tbody>
         </table>
       </div>
@@ -620,6 +674,41 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
           <button class="btn btn-green" style="width:100%;" onclick="cerrarCaja()">Cerrar Caja del Día</button>
           <div id="historialCierres" style="margin-top:16px;"></div>
         </div>
+      </div>
+    </div>
+
+    <!-- LISTA NEGRA -->
+    <div id="section-listanegra" class="section">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-header">
+          <h3>🚫 Lista Negra</h3>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:12px;color:var(--text3)">Huéspedes con puntuación ≤ 5</span>
+            <button class="btn btn-ghost btn-sm" onclick="copyListaNegraLink()">🔗 Copiar link público</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Huésped</th><th>Puntuación</th><th>Motivo</th><th>Estadías</th><th>Último hostel</th></tr></thead>
+          <tbody id="tablaListaNegra"></tbody>
+        </table>
+      </div>
+      <div style="padding:14px;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.2);border-radius:var(--radius);font-size:12px;color:var(--text3);">
+        💡 El link público muestra solo nombre, puntuación y motivo — sin DNI, teléfono ni email. Podés compartirlo con otros hostels de confianza.
+      </div>
+    </div>
+
+    <!-- GRILLA DE RESERVAS -->
+    <div id="section-grilla" class="section">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="grillaNavegar(-7)">◀ 7 días</button>
+        <button class="btn btn-ghost btn-sm" onclick="grillaNavegar(-1)">◀ 1 día</button>
+        <button class="btn btn-blue btn-sm" onclick="grillaHoy()">Hoy</button>
+        <button class="btn btn-ghost btn-sm" onclick="grillaNavegar(1)">1 día ▶</button>
+        <button class="btn btn-ghost btn-sm" onclick="grillaNavegar(7)">7 días ▶</button>
+        <span id="grillaRangoLabel" style="font-size:13px;color:var(--text2);margin-left:8px;"></span>
+      </div>
+      <div style="overflow-x:auto;">
+        <div id="grillaContainer"></div>
       </div>
     </div>
 
@@ -759,6 +848,15 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
     <div class="form-row">
       <div class="form-group"><label>Teléfono</label><input type="text" id="eh-tel"></div>
       <div class="form-group"><label>Email</label><input type="email" id="eh-email"></div>
+    </div>
+    <div class="form-group" style="margin-top:12px;">
+      <label>Puntuación de comportamiento (1-10)</label>
+      <div id="eh-stars" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"></div>
+      <input type="hidden" id="eh-score" value="">
+    </div>
+    <div class="form-group">
+      <label>Observaciones</label>
+      <textarea id="eh-obs" rows="2" placeholder="Ej: Dejó el baño sucio, problemas con otros huéspedes..."></textarea>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalEditHuesped')">Cancelar</button>
@@ -1203,19 +1301,8 @@ function showLoader(show) {
 // INITIAL SEED DATA
 async function initData() {
   if (cache['init']) return; // ya inicializado en Firebase
-  const today = new Date().toISOString().split('T')[0];
-  const tom = new Date(Date.now()+86400000).toISOString().split('T')[0];
-  const ayer = new Date(Date.now()-86400000).toISOString().split('T')[0];
-  await DB.set('huespedes', [
-    { id: 'h1', nombre: 'María', apellido: 'González', dni: '30123456', nac: 'Argentina', tel: '+54 9 223 4567890', email: 'maria@email.com', foto: null, estadias: 2 },
-    { id: 'h2', nombre: 'James', apellido: 'Wilson', dni: 'A1234567', nac: 'Estados Unidos', tel: '+1 555 1234', email: 'james@email.com', foto: null, estadias: 1 },
-    { id: 'h3', nombre: 'Lucía', apellido: 'Fernández', dni: '28765432', nac: 'Argentina', tel: '+54 9 223 9876543', email: 'lucia@email.com', foto: null, estadias: 3 },
-  ]);
-  await DB.set('reservas', [
-    { id: 'r1', huespedId:'h1', hab:'2', cama:'2-1', entrada:ayer, salida:tom, precio:27000, moneda:'ARS', pago:'efectivo', plataforma:'directo', estado:'checkin', notas:'' },
-    { id: 'r2', huespedId:'h2', hab:'3', cama:'3-2', entrada:today, salida:new Date(Date.now()+3*86400000).toISOString().split('T')[0], precio:25, moneda:'USD', pago:'tarjeta', plataforma:'booking', estado:'confirmada', notas:'Early check-in requested' },
-    { id: 'r3', huespedId:'h3', hab:'1', cama:'1-3', entrada:today, salida:new Date(Date.now()+2*86400000).toISOString().split('T')[0], precio:30000, moneda:'ARS', pago:'mercadopago', plataforma:'airbnb', estado:'confirmada', notas:'' },
-  ]);
+  await DB.set('huespedes', [{"id": "h1700000000000", "nombre": "Abigail", "apellido": "Ruiz", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000001000", "nombre": "Adriana", "apellido": "Lagar", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000002000", "nombre": "Adriana", "apellido": "Patouros", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000003000", "nombre": "Aixa", "apellido": "Lietti", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000004000", "nombre": "Alon", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000005000", "nombre": "Ana", "apellido": "Sofía Izurieta", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000006000", "nombre": "Ana", "apellido": "Trinidad marin", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000007000", "nombre": "Andreina", "apellido": "méndez Antonetti", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000008000", "nombre": "Ariana", "apellido": "Laura Quiroga", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000009000", "nombre": "Barbara", "apellido": "Aramayo", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000010000", "nombre": "Camilla", "apellido": "delledone", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000011000", "nombre": "Caro", "apellido": "Bustamante", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000012000", "nombre": "Claudia", "apellido": "Graciela Savoia", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000013000", "nombre": "Elias", "apellido": "Ritter", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000014000", "nombre": "Emilia", "apellido": "Elida Gómez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000015000", "nombre": "Emiliano", "apellido": "Quiroga", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000016000", "nombre": "Evelin", "apellido": "Anabella Barrera", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000017000", "nombre": "Fabiana", "apellido": "bosco", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000018000", "nombre": "Flabio", "apellido": "benavidez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000019000", "nombre": "Florencia", "apellido": "Abigail Pereira", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000020000", "nombre": "Franco", "apellido": "Altamirano", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000021000", "nombre": "Gabriela", "apellido": "Caldelari", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000022000", "nombre": "Gaston", "apellido": "Colli", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000023000", "nombre": "Gisela", "apellido": "Emateguy", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000024000", "nombre": "Gladys", "apellido": "Ricciardi", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000025000", "nombre": "Gonzalo", "apellido": "", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000026000", "nombre": "Guillermo", "apellido": "ulises frontini", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000027000", "nombre": "Isabel", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000028000", "nombre": "Ivan", "apellido": "Agustin gimenez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000029000", "nombre": "Javier", "apellido": "Walemberg", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000030000", "nombre": "Jimena", "apellido": "Martinez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000031000", "nombre": "Juan", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000032000", "nombre": "Julian", "apellido": "Sala", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000033000", "nombre": "Lara", "apellido": "benavidez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000034000", "nombre": "Lazaro", "apellido": "", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000035000", "nombre": "Lucas", "apellido": "Rios airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000036000", "nombre": "Lucia", "apellido": "Valeria Luis", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000037000", "nombre": "Luciano", "apellido": "Basano airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000038000", "nombre": "Ludmila", "apellido": "Anael Ramos", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000039000", "nombre": "Luis", "apellido": "tucuman", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000040000", "nombre": "MARCELO", "apellido": "BROWN", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 14}, {"id": "h1700000041000", "nombre": "Malena", "apellido": "Fernandez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000042000", "nombre": "Marcos", "apellido": "Fiscaro", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000043000", "nombre": "Maria", "apellido": "alejandra sleiman", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000044000", "nombre": "Maria", "apellido": "de Los ángeles", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000045000", "nombre": "Marian", "apellido": "souza", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000046000", "nombre": "Matias", "apellido": "Exequiel Pereira", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000047000", "nombre": "Matias", "apellido": "Velardez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000048000", "nombre": "Mauro", "apellido": "Geronimo López", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000049000", "nombre": "Maxima", "apellido": "Aramayo", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000050000", "nombre": "Myrian", "apellido": "", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000051000", "nombre": "Nadia", "apellido": "Nievas", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000052000", "nombre": "Natalia", "apellido": "Soledad Ehagaraz", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000053000", "nombre": "Nazareth", "apellido": "marin", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000054000", "nombre": "Nicolas", "apellido": "Chain", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000055000", "nombre": "Nicolas", "apellido": "Guerzoni", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000056000", "nombre": "Nora", "apellido": "elena carnero", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000057000", "nombre": "Norberto", "apellido": "", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000058000", "nombre": "Norberto", "apellido": "Chehin", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000059000", "nombre": "Plachot", "apellido": "Cecilia", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000060000", "nombre": "Rama", "apellido": "romano", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000061000", "nombre": "Romero", "apellido": "Verónica Jaqueline", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000062000", "nombre": "Sabrina", "apellido": "Verónica cattanzzaro", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000063000", "nombre": "Sabrina", "apellido": "Wassermann", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000064000", "nombre": "Samuel", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000065000", "nombre": "Silvina", "apellido": "Rodaro", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000066000", "nombre": "Simon", "apellido": "", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 2}, {"id": "h1700000067000", "nombre": "Sofia", "apellido": "Adeff", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000068000", "nombre": "Sofía", "apellido": "Severino", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000069000", "nombre": "Soledad", "apellido": "Gonzalez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000070000", "nombre": "Surya", "apellido": "Arrigoni", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000071000", "nombre": "Tatiana", "apellido": "vera luque", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000072000", "nombre": "Tomas", "apellido": "", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000073000", "nombre": "Valentina", "apellido": "Tonelli", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000074000", "nombre": "Valentina", "apellido": "Velazquez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000075000", "nombre": "Valentina", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000076000", "nombre": "Vanina", "apellido": "Lara", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000077000", "nombre": "Zilei", "apellido": "Airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000078000", "nombre": "adriana", "apellido": "artero", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000079000", "nombre": "agustin", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000080000", "nombre": "agustin", "apellido": "cazzaro", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000081000", "nombre": "analia", "apellido": "cabaña", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000082000", "nombre": "carla", "apellido": "nahir gomez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000083000", "nombre": "claudia", "apellido": "solange", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000084000", "nombre": "cristian", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000085000", "nombre": "enrique", "apellido": "lescano", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000086000", "nombre": "esteban", "apellido": "", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000087000", "nombre": "fiorella", "apellido": "denise benedini", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000088000", "nombre": "florencia", "apellido": "daniela", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000089000", "nombre": "gabriela", "apellido": "artero", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000090000", "nombre": "isabel", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000091000", "nombre": "jose", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000092000", "nombre": "jose", "apellido": "luis pérez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000093000", "nombre": "juan", "apellido": "marcelo marin", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000094000", "nombre": "julieta", "apellido": "uthurralt", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000095000", "nombre": "lautaro", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000096000", "nombre": "lionel", "apellido": "arrigoni", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000097000", "nombre": "lucas", "apellido": "perez", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000098000", "nombre": "luciano", "apellido": "vaccante", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000099000", "nombre": "marcela", "apellido": "artero", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000100000", "nombre": "mauricio", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000101000", "nombre": "maxima", "apellido": "mama de barbi", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000102000", "nombre": "maximiliano", "apellido": "airbnb", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000103000", "nombre": "nahuel", "apellido": "correa", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000104000", "nombre": "nidia", "apellido": "bertuna", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000105000", "nombre": "pilar", "apellido": "bascaran", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000106000", "nombre": "serena", "apellido": "toracchio", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000107000", "nombre": "sonia", "apellido": "sandoval", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000108000", "nombre": "susana", "apellido": "mier", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000109000", "nombre": "valentina", "apellido": "cacciurri", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}, {"id": "h1700000110000", "nombre": "victoria", "apellido": "bustelo", "dni": "", "nac": "Argentina", "tel": "", "email": "", "foto": null, "estadias": 1}]);
+  await DB.set('reservas', [{"id": "r1700100000000", "huespedId": "h1700000000000", "hab": "1", "cama": "1-3", "entrada": "2026-02-09", "salida": "2026-02-13", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100001000", "huespedId": "h1700000001000", "hab": "1", "cama": "1-3", "entrada": "2026-02-23", "salida": "2026-02-28", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100002000", "huespedId": "h1700000001000", "hab": "2", "cama": "2-3", "entrada": "2026-02-07", "salida": "2026-02-12", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100003000", "huespedId": "h1700000003000", "hab": "4", "cama": "4-6", "entrada": "2026-01-29", "salida": "2026-02-03", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100004000", "huespedId": "h1700000004000", "hab": "1", "cama": "1-6", "entrada": "2026-01-15", "salida": "2026-01-20", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100005000", "huespedId": "h1700000005000", "hab": "1", "cama": "1-1", "entrada": "2026-02-09", "salida": "2026-02-18", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100006000", "huespedId": "h1700000005000", "hab": "2", "cama": "2-1", "entrada": "2026-02-16", "salida": "2026-02-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100007000", "huespedId": "h1700000007000", "hab": "3", "cama": "3-2", "entrada": "2026-02-21", "salida": "2026-02-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100008000", "huespedId": "h1700000008000", "hab": "1", "cama": "1-3", "entrada": "2026-03-03", "salida": "2026-03-08", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100009000", "huespedId": "h1700000009000", "hab": "2", "cama": "2-5", "entrada": "2026-01-24", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100010000", "huespedId": "h1700000010000", "hab": "3", "cama": "3-6", "entrada": "2026-02-17", "salida": "2026-02-19", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100011000", "huespedId": "h1700000011000", "hab": "2", "cama": "2-2", "entrada": "2026-02-10", "salida": "2026-02-19", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100012000", "huespedId": "h1700000012000", "hab": "1", "cama": "1-7", "entrada": "2026-02-14", "salida": "2026-02-17", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100013000", "huespedId": "h1700000012000", "hab": "4", "cama": "4-4", "entrada": "2026-04-03", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100014000", "huespedId": "h1700000013000", "hab": "4", "cama": "4-1", "entrada": "2026-02-15", "salida": "2026-02-23", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100015000", "huespedId": "h1700000014000", "hab": "2", "cama": "2-3", "entrada": "2026-01-24", "salida": "2026-01-27", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100016000", "huespedId": "h1700000015000", "hab": "3", "cama": "3-1", "entrada": "2026-02-14", "salida": "2026-02-17", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100017000", "huespedId": "h1700000016000", "hab": "3", "cama": "3-1", "entrada": "2026-02-21", "salida": "2026-02-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100018000", "huespedId": "h1700000017000", "hab": "1", "cama": "1-2", "entrada": "2026-02-20", "salida": "2026-02-25", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100019000", "huespedId": "h1700000018000", "hab": "1", "cama": "1-8", "entrada": "2026-02-20", "salida": "2026-02-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100020000", "huespedId": "h1700000019000", "hab": "2", "cama": "2-1", "entrada": "2026-01-24", "salida": "2026-01-27", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100021000", "huespedId": "h1700000020000", "hab": "2", "cama": "2-2", "entrada": "2026-03-05", "salida": "2026-03-09", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100022000", "huespedId": "h1700000021000", "hab": "4", "cama": "4-5", "entrada": "2026-03-28", "salida": "2026-04-05", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100023000", "huespedId": "h1700000022000", "hab": "1", "cama": "1-8", "entrada": "2026-02-28", "salida": "2026-03-05", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100024000", "huespedId": "h1700000023000", "hab": "1", "cama": "1-4", "entrada": "2026-03-20", "salida": "2026-03-23", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100025000", "huespedId": "h1700000024000", "hab": "1", "cama": "1-3", "entrada": "2026-03-10", "salida": "2026-03-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100026000", "huespedId": "h1700000025000", "hab": "3", "cama": "3-1", "entrada": "2026-01-24", "salida": "2026-02-02", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100027000", "huespedId": "h1700000026000", "hab": "1", "cama": "1-3", "entrada": "2026-02-18", "salida": "2026-02-23", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100028000", "huespedId": "h1700000027000", "hab": "4", "cama": "4-3", "entrada": "2026-01-26", "salida": "2026-01-27", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100029000", "huespedId": "h1700000028000", "hab": "1", "cama": "1-8", "entrada": "2026-01-24", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100030000", "huespedId": "h1700000029000", "hab": "1", "cama": "1-5", "entrada": "2026-02-11", "salida": "2026-02-13", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100031000", "huespedId": "h1700000030000", "hab": "3", "cama": "3-1", "entrada": "2026-02-28", "salida": "2026-03-01", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100032000", "huespedId": "h1700000031000", "hab": "4", "cama": "4-2", "entrada": "2026-01-23", "salida": "2026-01-30", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100033000", "huespedId": "h1700000032000", "hab": "3", "cama": "3-4", "entrada": "2026-02-16", "salida": "2026-02-20", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100034000", "huespedId": "h1700000033000", "hab": "3", "cama": "3-3", "entrada": "2026-01-24", "salida": "2026-01-27", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100035000", "huespedId": "h1700000033000", "hab": "1", "cama": "1-7", "entrada": "2026-02-20", "salida": "2026-02-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100036000", "huespedId": "h1700000034000", "hab": "3", "cama": "3-4", "entrada": "2026-02-14", "salida": "2026-02-16", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100037000", "huespedId": "h1700000035000", "hab": "4", "cama": "4-5", "entrada": "2026-01-24", "salida": "2026-01-27", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100038000", "huespedId": "h1700000036000", "hab": "2", "cama": "2-6", "entrada": "2026-03-20", "salida": "2026-03-25", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100039000", "huespedId": "h1700000037000", "hab": "3", "cama": "3-6", "entrada": "2026-01-25", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100040000", "huespedId": "h1700000037000", "hab": "3", "cama": "3-4", "entrada": "2026-01-24", "salida": "2026-01-25", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100041000", "huespedId": "h1700000038000", "hab": "1", "cama": "1-6", "entrada": "2026-01-23", "salida": "2026-01-28", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100042000", "huespedId": "h1700000039000", "hab": "1", "cama": "1-3", "entrada": "2026-01-24", "salida": "2026-01-28", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100043000", "huespedId": "h1700000040000", "hab": "1", "cama": "1-8", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100044000", "huespedId": "h1700000040000", "hab": "2", "cama": "2-2", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100045000", "huespedId": "h1700000040000", "hab": "1", "cama": "1-6", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100046000", "huespedId": "h1700000040000", "hab": "1", "cama": "1-1", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100047000", "huespedId": "h1700000040000", "hab": "2", "cama": "2-5", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100048000", "huespedId": "h1700000040000", "hab": "1", "cama": "1-3", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100049000", "huespedId": "h1700000040000", "hab": "1", "cama": "1-7", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100050000", "huespedId": "h1700000040000", "hab": "2", "cama": "2-3", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100051000", "huespedId": "h1700000040000", "hab": "1", "cama": "1-4", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100052000", "huespedId": "h1700000040000", "hab": "2", "cama": "2-1", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100053000", "huespedId": "h1700000040000", "hab": "2", "cama": "2-6", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100054000", "huespedId": "h1700000040000", "hab": "1", "cama": "1-5", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100055000", "huespedId": "h1700000040000", "hab": "2", "cama": "2-4", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100056000", "huespedId": "h1700000040000", "hab": "1", "cama": "1-2", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100057000", "huespedId": "h1700000041000", "hab": "1", "cama": "1-5", "entrada": "2026-02-13", "salida": "2026-02-16", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100058000", "huespedId": "h1700000041000", "hab": "4", "cama": "4-1", "entrada": "2026-02-07", "salida": "2026-02-13", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100059000", "huespedId": "h1700000042000", "hab": "1", "cama": "1-7", "entrada": "2026-01-23", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100060000", "huespedId": "h1700000043000", "hab": "3", "cama": "3-6", "entrada": "2026-02-14", "salida": "2026-02-17", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100061000", "huespedId": "h1700000043000", "hab": "1", "cama": "1-6", "entrada": "2026-02-04", "salida": "2026-02-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100062000", "huespedId": "h1700000043000", "hab": "1", "cama": "1-6", "entrada": "2026-02-08", "salida": "2026-02-10", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100063000", "huespedId": "h1700000045000", "hab": "3", "cama": "3-6", "entrada": "2026-02-19", "salida": "2026-02-23", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100064000", "huespedId": "h1700000046000", "hab": "2", "cama": "2-2", "entrada": "2026-01-24", "salida": "2026-01-27", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100065000", "huespedId": "h1700000046000", "hab": "1", "cama": "1-4", "entrada": "2026-02-18", "salida": "2026-02-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100066000", "huespedId": "h1700000048000", "hab": "1", "cama": "1-4", "entrada": "2026-02-04", "salida": "2026-02-09", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100067000", "huespedId": "h1700000049000", "hab": "2", "cama": "2-6", "entrada": "2026-01-24", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100068000", "huespedId": "h1700000050000", "hab": "3", "cama": "3-2", "entrada": "2026-01-24", "salida": "2026-02-02", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100069000", "huespedId": "h1700000051000", "hab": "3", "cama": "3-3", "entrada": "2026-02-14", "salida": "2026-02-17", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100070000", "huespedId": "h1700000052000", "hab": "2", "cama": "2-4", "entrada": "2026-03-18", "salida": "2026-03-21", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100071000", "huespedId": "h1700000053000", "hab": "2", "cama": "2-5", "entrada": "2026-02-16", "salida": "2026-02-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100072000", "huespedId": "h1700000054000", "hab": "1", "cama": "1-7", "entrada": "2026-03-20", "salida": "2026-03-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100073000", "huespedId": "h1700000054000", "hab": "1", "cama": "1-5", "entrada": "2026-02-27", "salida": "2026-03-01", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100074000", "huespedId": "h1700000054000", "hab": "1", "cama": "1-4", "entrada": "2026-01-23", "salida": "2026-01-27", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100075000", "huespedId": "h1700000056000", "hab": "1", "cama": "1-8", "entrada": "2026-02-12", "salida": "2026-02-14", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100076000", "huespedId": "h1700000057000", "hab": "1", "cama": "1-2", "entrada": "2026-02-28", "salida": "2026-03-01", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100077000", "huespedId": "h1700000057000", "hab": "2", "cama": "2-2", "entrada": "2026-03-20", "salida": "2026-03-22", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100078000", "huespedId": "h1700000057000", "hab": "2", "cama": "2-1", "entrada": "2026-03-20", "salida": "2026-03-22", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100079000", "huespedId": "h1700000059000", "hab": "1", "cama": "1-6", "entrada": "2026-02-22", "salida": "2026-02-25", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100080000", "huespedId": "h1700000060000", "hab": "3", "cama": "3-6", "entrada": "2026-01-24", "salida": "2026-01-25", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100081000", "huespedId": "h1700000060000", "hab": "3", "cama": "3-4", "entrada": "2026-01-25", "salida": "2026-01-28", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100082000", "huespedId": "h1700000061000", "hab": "1", "cama": "1-2", "entrada": "2026-03-16", "salida": "2026-03-22", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100083000", "huespedId": "h1700000062000", "hab": "1", "cama": "1-1", "entrada": "2026-04-08", "salida": "2026-04-09", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100084000", "huespedId": "h1700000062000", "hab": "1", "cama": "1-1", "entrada": "2026-01-24", "salida": "2026-01-30", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100085000", "huespedId": "h1700000064000", "hab": "4", "cama": "4-1", "entrada": "2026-01-19", "salida": "2026-01-30", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100086000", "huespedId": "h1700000065000", "hab": "1", "cama": "1-6", "entrada": "2026-02-11", "salida": "2026-02-13", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100087000", "huespedId": "h1700000066000", "hab": "1", "cama": "1-6", "entrada": "2026-03-03", "salida": "2026-03-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100088000", "huespedId": "h1700000066000", "hab": "4", "cama": "4-4", "entrada": "2026-02-13", "salida": "2026-02-19", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100089000", "huespedId": "h1700000067000", "hab": "2", "cama": "2-6", "entrada": "2026-02-15", "salida": "2026-02-17", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100090000", "huespedId": "h1700000068000", "hab": "1", "cama": "1-2", "entrada": "2026-01-23", "salida": "2026-01-28", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100091000", "huespedId": "h1700000069000", "hab": "3", "cama": "3-4", "entrada": "2026-02-20", "salida": "2026-02-25", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100092000", "huespedId": "h1700000070000", "hab": "3", "cama": "3-5", "entrada": "2026-02-28", "salida": "2026-03-01", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100093000", "huespedId": "h1700000071000", "hab": "1", "cama": "1-6", "entrada": "2026-02-16", "salida": "2026-02-21", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100094000", "huespedId": "h1700000072000", "hab": "2", "cama": "2-4", "entrada": "2026-02-14", "salida": "2026-02-16", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100095000", "huespedId": "h1700000073000", "hab": "3", "cama": "3-2", "entrada": "2026-02-14", "salida": "2026-02-17", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100096000", "huespedId": "h1700000073000", "hab": "1", "cama": "1-5", "entrada": "2026-02-20", "salida": "2026-02-25", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100097000", "huespedId": "h1700000073000", "hab": "3", "cama": "3-1", "entrada": "2026-02-10", "salida": "2026-02-13", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100098000", "huespedId": "h1700000076000", "hab": "1", "cama": "1-1", "entrada": "2026-02-19", "salida": "2026-02-25", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100099000", "huespedId": "h1700000077000", "hab": "4", "cama": "4-4", "entrada": "2026-01-31", "salida": "2026-02-02", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100100000", "huespedId": "h1700000078000", "hab": "3", "cama": "3-2", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100101000", "huespedId": "h1700000079000", "hab": "1", "cama": "1-5", "entrada": "2026-01-24", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100102000", "huespedId": "h1700000079000", "hab": "2", "cama": "2-4", "entrada": "2026-02-24", "salida": "2026-03-03", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100103000", "huespedId": "h1700000081000", "hab": "2", "cama": "2-4", "entrada": "2026-02-16", "salida": "2026-02-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100104000", "huespedId": "h1700000082000", "hab": "1", "cama": "1-2", "entrada": "2026-03-26", "salida": "2026-03-31", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100105000", "huespedId": "h1700000083000", "hab": "1", "cama": "1-3", "entrada": "2026-02-13", "salida": "2026-02-18", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100106000", "huespedId": "h1700000084000", "hab": "3", "cama": "3-5", "entrada": "2026-01-20", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100107000", "huespedId": "h1700000085000", "hab": "4", "cama": "4-2", "entrada": "2026-03-18", "salida": "2026-04-07", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100108000", "huespedId": "h1700000086000", "hab": "3", "cama": "3-5", "entrada": "2026-02-13", "salida": "2026-02-17", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100109000", "huespedId": "h1700000087000", "hab": "1", "cama": "1-2", "entrada": "2026-02-14", "salida": "2026-02-18", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100110000", "huespedId": "h1700000088000", "hab": "1", "cama": "1-4", "entrada": "2026-02-14", "salida": "2026-02-18", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100111000", "huespedId": "h1700000089000", "hab": "3", "cama": "3-5", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100112000", "huespedId": "h1700000090000", "hab": "4", "cama": "4-3", "entrada": "2026-01-25", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100113000", "huespedId": "h1700000091000", "hab": "3", "cama": "3-2", "entrada": "2026-01-16", "salida": "2026-01-20", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100114000", "huespedId": "h1700000091000", "hab": "3", "cama": "3-2", "entrada": "2026-02-28", "salida": "2026-03-01", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100115000", "huespedId": "h1700000093000", "hab": "2", "cama": "2-3", "entrada": "2026-02-16", "salida": "2026-02-24", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100116000", "huespedId": "h1700000094000", "hab": "3", "cama": "3-3", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100117000", "huespedId": "h1700000095000", "hab": "4", "cama": "4-6", "entrada": "2026-01-24", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100118000", "huespedId": "h1700000096000", "hab": "3", "cama": "3-4", "entrada": "2026-02-28", "salida": "2026-03-01", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100119000", "huespedId": "h1700000097000", "hab": "1", "cama": "1-2", "entrada": "2026-03-09", "salida": "2026-03-13", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100120000", "huespedId": "h1700000098000", "hab": "4", "cama": "4-2", "entrada": "2026-02-16", "salida": "2026-03-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100121000", "huespedId": "h1700000099000", "hab": "3", "cama": "3-1", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100122000", "huespedId": "h1700000100000", "hab": "1", "cama": "1-5", "entrada": "2026-02-16", "salida": "2026-02-19", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100123000", "huespedId": "h1700000101000", "hab": "4", "cama": "4-6", "entrada": "2026-02-12", "salida": "2026-02-20", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100124000", "huespedId": "h1700000102000", "hab": "4", "cama": "4-4", "entrada": "2026-01-24", "salida": "2026-01-26", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "airbnb", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100125000", "huespedId": "h1700000103000", "hab": "1", "cama": "1-2", "entrada": "2026-03-05", "salida": "2026-03-09", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100126000", "huespedId": "h1700000104000", "hab": "1", "cama": "1-2", "entrada": "2026-02-19", "salida": "2026-02-20", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100127000", "huespedId": "h1700000105000", "hab": "1", "cama": "1-1", "entrada": "2026-02-02", "salida": "2026-02-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100128000", "huespedId": "h1700000106000", "hab": "3", "cama": "3-4", "entrada": "2026-02-09", "salida": "2026-02-12", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100129000", "huespedId": "h1700000107000", "hab": "4", "cama": "4-4", "entrada": "2026-03-20", "salida": "2026-03-22", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100130000", "huespedId": "h1700000108000", "hab": "3", "cama": "3-3", "entrada": "2026-02-28", "salida": "2026-03-01", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100131000", "huespedId": "h1700000109000", "hab": "1", "cama": "1-6", "entrada": "2026-03-18", "salida": "2026-03-23", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}, {"id": "r1700100132000", "huespedId": "h1700000110000", "hab": "3", "cama": "3-4", "entrada": "2026-04-02", "salida": "2026-04-06", "precio": 27000, "moneda": "ARS", "pago": "efectivo", "plataforma": "directo", "estado": "checkout", "estadoPago": "total", "pagado": 27000, "saldo": 0, "notas": "Importado desde planilla"}]);
   await DB.set('beds', {});
   await DB.set('movimientos', [
     { id: 'm1', tipo:'ingreso', cat:'reserva', moneda:'ARS', monto:27000, metodo:'efectivo', fecha:today, concepto:'Check-in María González' },
@@ -1319,6 +1406,7 @@ async function doLogout() {
 
 function applyRoleUI(rolKey, rolObj) {
   const isAdmin = rolKey === 'admin' || (rolObj && rolObj.permisos && rolObj.permisos.roles === 'rw');
+  document.getElementById('nav-listanegra')?.style && (document.getElementById('nav-listanegra').style.display = isAdmin ? '' : 'none');
   const adminEls = document.querySelectorAll('.admin-only');
   adminEls.forEach(el => el.style.display = isAdmin ? '' : 'none');
 }
@@ -1327,7 +1415,7 @@ function applyRoleUI(rolKey, rolObj) {
 const sectionTitles = {
   dashboard:'Dashboard', mapa:'Mapa de Camas', reservas:'Reservas',
   checkin:'Check-In / Check-Out', huespedes:'Huéspedes', precios:'Gestión de Precios',
-  contabilidad:'Contabilidad', caja:'Caja Diaria', usuarios:'Usuarios del Sistema', roles:'Roles y Permisos'
+  grilla:'Grilla de Reservas', listanegra:'Lista Negra', contabilidad:'Contabilidad', caja:'Caja Diaria', usuarios:'Usuarios del Sistema', roles:'Roles y Permisos'
 };
 
 function showSection(s) {
@@ -1340,6 +1428,8 @@ function showSection(s) {
   if (s === 'mapa') { document.getElementById('mapaFecha').value = today(); loadAllData().then(() => renderMapa()); }
   if (s === 'reservas') loadAllData().then(() => renderReservas());
   if (s === 'checkin') loadAllData().then(() => renderCheckin());
+  if (s === 'grilla') loadAllData().then(() => renderGrilla());
+  if (s === 'listanegra') loadAllData().then(() => renderListaNegra());
   if (s === 'huespedes') loadAllData().then(() => renderHuespedes());
   if (s === 'precios') renderPrecios('temporada');
   if (s === 'contabilidad') renderAcct('ingresos');
@@ -1667,7 +1757,7 @@ function renderReservas() {
     return `<tr>
       <td style="font-family:'DM Mono';font-size:11px;color:var(--text3)">${r.id}</td>
       <td>${getHuespedNombre(r.huespedId)}</td>
-      <td>Hab.${r.hab} / ${r.cama}</td>
+      <td>Hab.${r.hab} / C${camaLabel(r.cama)}</td>
       <td>${r.entrada}</td><td>${r.salida}</td>
       <td style="text-align:center">${nights}</td>
       <td>${total}</td>
@@ -1806,7 +1896,7 @@ function doCheckin(rid) {
   document.getElementById('ci-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${getHuespedNombre(r.huespedId)}</strong></div>
-      <div><span style="color:var(--text3);display:block;font-size:11px">Hab. / Cama</span><strong>Hab.${r.hab} / ${r.cama}</strong></div>
+      <div><span style="color:var(--text3);display:block;font-size:11px">Hab. / Cama</span><strong>Hab.${r.hab} / C${camaLabel(r.cama)}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Salida</span><strong>${r.salida}</strong></div>
     </div>`;
   openModal('modalCheckin');
@@ -1998,7 +2088,7 @@ function renderCheckin() {
         return `<tr>
           <td>${getHuespedNombre(r.huespedId)}</td>
           <td>${h?.nac||'—'}</td>
-          <td>Hab.${r.hab} / ${r.cama}</td>
+          <td>Hab.${r.hab} / C${camaLabel(r.cama)}</td>
           <td><span style="font-family:'DM Mono';font-size:13px;font-weight:600;color:var(--accent2)">${r.llave||'—'}</span></td>
           <td>${r.entrada}${r.horaCheckin?` <span style="color:var(--text3);font-size:11px">${r.horaCheckin}hs</span>`:''}</td>
           <td>${r.salida}</td>
@@ -2029,6 +2119,7 @@ function renderHuespedes() {
         <td style="font-family:'DM Mono';font-size:12px">${h.dni}</td>
         <td>${h.nac}</td><td>${h.tel||'—'}</td><td>${h.email||'—'}</td>
         <td style="text-align:center">${h.estadias||0}</td>
+        <td>${getScoreBadge(h.score)}</td>
         <td style="display:flex;gap:4px;">
           <button class="btn btn-ghost btn-sm" onclick="showGuestDetail('${h.id}')">Ver</button>
           <button class="btn btn-ghost btn-sm" onclick="openEditHuesped('${h.id}')">✏️</button>
@@ -2524,6 +2615,9 @@ function openEditHuesped(id) {
   document.getElementById('eh-nac').value = h.nac||'';
   document.getElementById('eh-tel').value = h.tel||'';
   document.getElementById('eh-email').value = h.email||'';
+  document.getElementById('eh-score').value = h.score||'';
+  document.getElementById('eh-obs').value = h.obs||'';
+  renderScoreStars('eh-stars', 'eh-score', h.score||null);
   openModal('modalEditHuesped');
 }
 
@@ -2540,6 +2634,9 @@ async function saveEditHuesped() {
   h.nac = document.getElementById('eh-nac').value;
   h.tel = document.getElementById('eh-tel').value;
   h.email = document.getElementById('eh-email').value;
+  const sc = document.getElementById('eh-score').value;
+  h.score = sc ? Number(sc) : null;
+  h.obs = document.getElementById('eh-obs').value.trim();
   h.pendiente = false;
   await DB.set('huespedes', huespedes);
   closeModal('modalEditHuesped');
@@ -2774,7 +2871,7 @@ function openHorario(rid, tipo) {
   document.getElementById('horario-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${getHuespedNombre(r.huespedId)}</strong></div>
-      <div><span style="color:var(--text3);display:block;font-size:11px">Hab. / Cama</span><strong>Hab.${r.hab} / ${r.cama}</strong></div>
+      <div><span style="color:var(--text3);display:block;font-size:11px">Hab. / Cama</span><strong>Hab.${r.hab} / C${camaLabel(r.cama)}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">${isLate?'Salida estándar':'Entrada estándar'}</span><strong style="color:#fbbf24">${isLate?'10:00 hs':'14:00 hs'}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">${isLate?'Fecha de salida':'Fecha de entrada'}</span><strong>${isLate?r.salida:r.entrada}</strong></div>
     </div>`;
@@ -2850,9 +2947,210 @@ async function limpiarDuplicados() {
   showNotif(`🧹 ${duplicadas.length} duplicado(s) eliminado(s)`);
 }
 
+
+
+// ===================== PUNTUACIÓN Y LISTA NEGRA =====================
+
+function renderScoreStars(containerId, scoreInputId, currentScore) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const scores = [1,2,3,4,5,6,7,8,9,10];
+  container.innerHTML = scores.map(n => {
+    const color = n <= 3 ? '#f87171' : n <= 5 ? '#fbbf24' : n <= 7 ? '#60a5fa' : '#34d399';
+    const selected = currentScore && n <= currentScore;
+    return `<div onclick="setScore('${scoreInputId}','${containerId}',${n})"
+      style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:700;cursor:pointer;transition:all 0.15s;
+      background:${selected ? color.replace(')', ',0.25)').replace('rgb','rgba') : 'var(--surface2)'};
+      color:${selected ? color : 'var(--text3)'};
+      border:1px solid ${selected ? color : 'var(--border)'};
+      transform:${currentScore===n?'scale(1.2)':'scale(1)'}"
+      title="Puntuación ${n}">${n}</div>`;
+  }).join('');
+}
+
+function setScore(inputId, containerId, val) {
+  document.getElementById(inputId).value = val;
+  renderScoreStars(containerId, inputId, val);
+}
+
+function getScoreBadge(score) {
+  if (!score) return '<span style="font-size:11px;color:var(--text3)">Sin calificar</span>';
+  const color = score <= 3 ? '#f87171' : score <= 5 ? '#fbbf24' : score <= 7 ? '#60a5fa' : '#34d399';
+  const emoji = score <= 3 ? '🔴' : score <= 5 ? '🟡' : score <= 7 ? '🔵' : '🟢';
+  return `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700;background:${color}22;color:${color}">${emoji} ${score}/10</span>`;
+}
+
+function renderListaNegra() {
+  const huespedes = DB.get('huespedes', []);
+  const lista = huespedes.filter(h => h.score && h.score <= 5).sort((a,b) => a.score - b.score);
+  const tbody = document.getElementById('tablaListaNegra');
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:24px">✅ Sin huéspedes en lista negra</td></tr>';
+    return;
+  }
+  tbody.innerHTML = lista.map(h => `<tr>
+    <td><strong style="color:var(--text)">${h.nombre} ${h.apellido}</strong></td>
+    <td>${getScoreBadge(h.score)}</td>
+    <td style="font-size:12px;color:var(--text2)">${h.obs || '—'}</td>
+    <td style="text-align:center">${h.estadias || 0}</td>
+    <td style="font-size:12px;color:var(--text3)">Alula Hostel</td>
+  </tr>`).join('');
+}
+
+function copyListaNegraLink() {
+  const url = window.location.href.split('?')[0] + '?listanegra=1';
+  navigator.clipboard.writeText(url).then(() => {
+    showNotif('🔗 Link copiado al portapapeles');
+  }).catch(() => {
+    prompt('Copiá este link:', url);
+  });
+}
+
+function checkListaNegraMode() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('listanegra') === '1') {
+    showListaNegraPublica();
+  }
+}
+
+async function showListaNegraPublica() {
+  await loadAllData();
+  const huespedes = DB.get('huespedes', []);
+  const lista = huespedes.filter(h => h.score && h.score <= 5).sort((a,b) => a.score - b.score);
+  document.getElementById('loginScreen').innerHTML = `
+    <div style="max-width:600px;width:95%;padding:32px 24px;">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div style="font-size:40px;margin-bottom:8px;">🚫</div>
+        <h1 style="font-size:22px;font-weight:700;color:var(--text)">Lista Negra — Alula Hostel</h1>
+        <p style="color:var(--text3);font-size:13px;margin-top:4px">Huéspedes con comportamiento problemático</p>
+      </div>
+      ${lista.length === 0
+        ? '<p style="text-align:center;color:var(--text3)">Sin registros actualmente</p>'
+        : `<div style="display:flex;flex-direction:column;gap:10px;">
+          ${lista.map(h => `
+            <div style="background:var(--surface);border:1px solid rgba(220,38,38,0.25);border-radius:var(--radius2);padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+              <div>
+                <strong style="color:var(--text);font-size:15px;">${h.nombre} ${h.apellido}</strong>
+                ${h.obs ? `<p style="font-size:12px;color:var(--text2);margin-top:4px">📝 ${h.obs}</p>` : ''}
+              </div>
+              <div style="flex-shrink:0">${getScoreBadge(h.score)}</div>
+            </div>`).join('')}
+          </div>`}
+      <p style="text-align:center;font-size:11px;color:var(--text3);margin-top:24px">
+        Actualizado: ${new Date().toLocaleDateString('es-AR')} · Alula Hostel Mar del Plata
+      </p>
+    </div>`;
+}
+
+// ===================== GRILLA DE RESERVAS =====================
+let grillaFechaInicio = null;
+const GRILLA_DIAS = 14;
+
+function grillaHoy() {
+  grillaFechaInicio = today();
+  renderGrilla();
+}
+
+function grillaNavegar(dias) {
+  if (!grillaFechaInicio) grillaFechaInicio = today();
+  const d = new Date(grillaFechaInicio);
+  d.setDate(d.getDate() + dias);
+  grillaFechaInicio = d.toISOString().split('T')[0];
+  renderGrilla();
+}
+
+function renderGrilla() {
+  if (!grillaFechaInicio) grillaFechaInicio = today();
+  const reservas = DB.get('reservas', []);
+  const tod = today();
+
+  // Generar array de fechas a mostrar
+  const fechas = [];
+  for (let i = 0; i < GRILLA_DIAS; i++) {
+    const d = new Date(grillaFechaInicio);
+    d.setDate(d.getDate() + i);
+    fechas.push(d.toISOString().split('T')[0]);
+  }
+
+  // Label de rango
+  const fmt = f => { const p = f.split('-'); return `${p[2]}/${p[1]}`; };
+  document.getElementById('grillaRangoLabel').textContent =
+    `${fmt(fechas[0])} — ${fmt(fechas[fechas.length-1])}`;
+
+  const diasSemana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+  // Construir tabla
+  let html = '<table class="grilla-table">';
+
+  // Header fechas
+  html += '<thead><tr><th style="position:sticky;left:0;z-index:3;background:var(--surface2)">Cama</th>';
+  fechas.forEach(f => {
+    const d = new Date(f + 'T12:00:00');
+    const isToday = f === tod;
+    const dow = diasSemana[d.getDay()];
+    const isWE = d.getDay() === 0 || d.getDay() === 6;
+    html += `<th class="${isToday ? 'today-col' : ''}" style="${isWE ? 'color:#f59e0b' : ''}">
+      ${dow}<br><strong>${d.getDate()}/${d.getMonth()+1}</strong>
+    </th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  // Filas por habitación y cama
+  for (let h = 1; h <= 6; h++) {
+    const hs = String(h);
+    const beds = habBeds(hs);
+
+    // Fila separador de habitación
+    html += `<tr class="grilla-hab-header"><td colspan="${fechas.length + 1}">Habitación ${h} (${beds.length} camas)</td></tr>`;
+
+    beds.forEach(b => {
+      html += `<tr><td class="cama-label">Cama ${b.label}</td>`;
+
+      // Para cada fecha, ver si hay reserva
+      fechas.forEach((f, fi) => {
+        const res = reservas.find(r =>
+          r.cama === b.id &&
+          (r.estado === 'checkin' || r.estado === 'confirmada' || r.estado === 'checkout') &&
+          r.entrada.substring(0,10) <= f && r.salida.substring(0,10) > f
+        );
+
+        const isToday = f === tod;
+        let cellClass = 'gc-free';
+        let innerHtml = '';
+
+        if (res) {
+          const esEntrada = res.entrada.substring(0,10) === f;
+          cellClass = res.estado === 'checkin' ? 'gc-occupied' : res.estado === 'confirmada' ? 'gc-confirmed' : 'gc-checkout';
+          if (esEntrada) {
+            const nombre = getHuespedNombre(res.huespedId).split(' ')[0];
+            innerHtml = `<div class="grilla-span ${res.estado}" onclick="cycleBed('${b.id}')" title="${getHuespedNombre(res.huespedId)}">${nombre}</div>`;
+          }
+        }
+
+        html += `<td class="grilla-cell ${cellClass}${isToday ? ' gc-today' : ''}">${innerHtml}</td>`;
+      });
+
+      html += '</tr>';
+    });
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('grillaContainer').innerHTML = html;
+}
+
+// ===================== MAPA FECHA WRAPPER =====================
+function renderMapaFecha(val) {
+  const f = val || new Date().toISOString().split('T')[0];
+  const input = document.getElementById('mapaFecha');
+  if (input) input.value = f;
+  renderMapa(f);
+}
+
 // ===================== INIT =====================
 updateDate();
 checkPublicMode();
+checkListaNegraMode();
 // Botón formulario público en login — event listener directo para evitar problema de módulo
 document.getElementById('btnPublicForm')?.addEventListener('click', showPublicRegistrationForm);
 loadAllData().then(() => {
@@ -2862,9 +3160,11 @@ loadAllData().then(() => {
 // ===== EXPONER FUNCIONES GLOBALMENTE (requerido por type="module") =====
 Object.assign(window, {
   doLogin, doLogout, showSection, closeSidebar, toggleSidebar, openNuevaReserva,
+  grillaNavegar, grillaHoy, renderGrilla,
+  renderListaNegra, copyListaNegraLink, renderScoreStars, setScore,
   confirmCheckin, doCheckin, doCheckout, editUsuario, openExtender, openHorario, openNuevoUsuario, openPago,
   openModal, closeModal,
-  renderReservas, renderDashboard, renderMapa, renderCheckin,
+  renderReservas, renderDashboard, renderMapa, renderMapaFecha, renderCheckin,
   renderHuespedes, renderPrecios, renderAcct, renderCaja, renderRoles, renderUsuarios,
   saveReserva, saveHuesped, saveMovimiento, saveRol, saveUsuario, savePago, saveExtension, saveHorario,
   openEditHuesped, saveEditHuesped, confirmDelete, deleteHuesped, deleteReserva,
