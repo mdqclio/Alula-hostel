@@ -3381,7 +3381,7 @@ function showQuickReplies() {
   const c = document.getElementById('chatQuickBtns');
   if (!c) return;
   c.innerHTML = QUICK_REPLIES.map(r =>
-    `<button class="chat-quick-btn" onclick="sendQuickReply('${r.msg.replace(/'/g,\'\')}')">${r.label}</button>`
+    `<button class="chat-quick-btn" onclick="sendQuickReply('${r.msg.replace(/'/g, "&#39;")}')">${r.label}</button>`
   ).join('');
 }
 
