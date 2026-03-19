@@ -530,10 +530,14 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
           <div class="legend-item"><div class="legend-dot" style="background:rgba(217,119,6,0.5)"></div>Sucia</div>
           <div class="legend-item"><div class="legend-dot" style="background:rgba(220,38,38,0.4)"></div>Mantenimiento</div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:12px;color:var(--text3)">Ver ocupación al:</span>
-          <input type="date" id="mapaFecha" style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);color:var(--text);padding:6px 10px;font-size:13px;cursor:pointer;z-index:10;position:relative;">
-          <button class="btn btn-ghost btn-sm" onclick="renderMapaFecha()">Hoy</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-ghost btn-sm" onclick="mapaNavegar(-7)">◀ 7d</button>
+          <button class="btn btn-ghost btn-sm" onclick="mapaNavegar(-1)">◀ 1d</button>
+          <button class="btn btn-blue btn-sm" onclick="mapaNavegar(0)">Hoy</button>
+          <button class="btn btn-ghost btn-sm" onclick="mapaNavegar(1)">1d ▶</button>
+          <button class="btn btn-ghost btn-sm" onclick="mapaNavegar(7)">7d ▶</button>
+          <span id="mapaFechaLabel" style="font-size:13px;color:var(--text2);font-family:'DM Mono';margin-left:4px;"></span>
+          <input type="hidden" id="mapaFecha">
         </div>
       </div>
       <div class="rooms-grid" id="roomsGrid"></div>
@@ -1425,7 +1429,7 @@ function showSection(s) {
   document.getElementById('nav-'+s)?.classList.add('active');
   document.getElementById('pageTitle').textContent = sectionTitles[s] || s;
   if (s === 'dashboard') loadAllData().then(() => renderDashboard());
-  if (s === 'mapa') { document.getElementById('mapaFecha').value = today(); loadAllData().then(() => renderMapa()); }
+  if (s === 'mapa') { mapaNavegar(0); loadAllData().then(() => renderMapa(document.getElementById('mapaFecha').value)); }
   if (s === 'reservas') loadAllData().then(() => renderReservas());
   if (s === 'checkin') loadAllData().then(() => renderCheckin());
   if (s === 'grilla') loadAllData().then(() => renderGrilla());
@@ -3147,10 +3151,30 @@ function renderGrilla() {
 }
 
 // ===================== MAPA FECHA WRAPPER =====================
+function mapaNavegar(dias) {
+  const input = document.getElementById('mapaFecha');
+  const base = input.value || new Date().toISOString().split('T')[0];
+  let fecha;
+  if (dias === 0) {
+    fecha = new Date().toISOString().split('T')[0];
+  } else {
+    const d = new Date(base + 'T12:00:00');
+    d.setDate(d.getDate() + dias);
+    fecha = d.toISOString().split('T')[0];
+  }
+  input.value = fecha;
+  const parts = fecha.split('-');
+  const label = document.getElementById('mapaFechaLabel');
+  if (label) label.textContent = `${parts[2]}/${parts[1]}/${parts[0]}`;
+  renderMapa(fecha);
+}
+
 function renderMapaFecha(val) {
   const f = val || new Date().toISOString().split('T')[0];
   const input = document.getElementById('mapaFecha');
   if (input) input.value = f;
+  const label = document.getElementById('mapaFechaLabel');
+  if (label) { const p = f.split('-'); label.textContent = `${p[2]}/${p[1]}/${p[0]}`; }
   renderMapa(f);
 }
 
@@ -3169,6 +3193,7 @@ Object.assign(window, {
   doLogin, doLogout, showSection, closeSidebar, toggleSidebar, openNuevaReserva,
   grillaNavegar, grillaHoy, renderGrilla,
   renderListaNegra, copyListaNegraLink, renderScoreStars, setScore,
+  mapaNavegar, renderMapaFecha,
   today,
   confirmCheckin, doCheckin, doCheckout, editUsuario, openExtender, openHorario, openNuevoUsuario, openPago,
   openModal, closeModal,
