@@ -3252,34 +3252,109 @@ function renderGrilla() {
 
 
 // ===================== CHATBOT ALULA =====================
-const ALULA_SYSTEM_PROMPT = `Sos el asistente virtual del Alula Hostel, un hostel en Mar del Plata, Argentina.
-Tu nombre es "Alu". Respondés de forma amigable, cálida y concisa. Detectás el idioma del mensaje y respondés en el mismo idioma (español o inglés).
+function buildSystemPrompt() {
+  const reservas = DB.get('reservas', []);
+  const bedStates = DB.get('beds', {});
+  const precios = DB.get('precios', {});
+
+  const todayStr = today();
+
+  // Habitaciones: 1=8 camas, 2-6=6 camas cada una. Habs 5 y 6 en mantenimiento.
+  const HABS = {
+    '1': { camas: 8, descripcion: 'Hab. 1 — vista al mar, baño en suite, 8 camas' },
+    '2': { camas: 6, descripcion: 'Hab. 2 — vista al mar, baño compartido, 6 camas' },
+    '3': { camas: 6, descripcion: 'Hab. 3 — gran balcón, baño en suite, 6 camas' },
+    '4': { camas: 6, descripcion: 'Hab. 4 — baño compartido, 6 camas' },
+    '5': { camas: 6, descripcion: 'Hab. 5 — EN MANTENIMIENTO, no disponible' },
+    '6': { camas: 6, descripcion: 'Hab. 6 — EN MANTENIMIENTO, no disponible' },
+  };
+
+  // Camas en mantenimiento según estado en beds
+  const camasEnMantenimiento = Object.entries(bedStates)
+    .filter(([,v]) => v?.estado === 'maintenance').map(([k]) => k);
+
+  const totalCamas = 38;
+  const camasDisponibles = totalCamas - camasEnMantenimiento.length - 12; // 12 = habs 5 y 6
+
+  // Ocupación hoy
+  const reservasHoy = reservas.filter(r =>
+    r.estado !== 'checkout' && r.entrada <= todayStr && r.salida > todayStr
+  );
+  const ocupadasHoy = reservasHoy.length;
+  const libresHoy = Math.max(0, camasDisponibles - ocupadasHoy);
+
+  // Próximos check-ins (hoy y mañana)
+  const manana = new Date(); manana.setDate(manana.getDate() + 1);
+  const mananaStr = manana.toISOString().slice(0,10);
+  const checkinsHoy = reservas.filter(r => r.entrada === todayStr && r.estado !== 'checkout').length;
+  const checkinsMañana = reservas.filter(r => r.entrada === mananaStr && r.estado !== 'checkout').length;
+  const checkoutsHoy = reservas.filter(r => r.salida === todayStr && r.estado !== 'checkout').length;
+
+  // Precios actuales desde Firebase
+  let preciosTexto = '';
+  if (precios.temporadas && precios.temporadas.length) {
+    preciosTexto = precios.temporadas.map(t =>
+      `- ${t.nombre} (${t.meses}): $${t.precio.toLocaleString('es-AR')} ARS/noche`
+    ).join('\n');
+  } else {
+    preciosTexto = `- Temporada alta (Dic-Feb): $35.000 ARS/noche
+- Temporada media (Mar-Nov exc.Jul-Ago): $27.000 ARS/noche
+- Temporada baja (Abr-May, Sep-Oct): $22.000 ARS/noche`;
+  }
+
+  // Función para calcular disponibilidad en una fecha
+  function disponibilidadEnFecha(fechaStr) {
+    const ocupadas = reservas.filter(r =>
+      r.estado !== 'checkout' && r.entrada <= fechaStr && r.salida > fechaStr
+    ).length;
+    return Math.max(0, camasDisponibles - ocupadas);
+  }
+
+  // Próximas 2 semanas de disponibilidad resumida
+  let dispProximas = '';
+  for (let i = 0; i <= 14; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const ds = d.toISOString().slice(0,10);
+    const libres = disponibilidadEnFecha(ds);
+    const label = i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : ds;
+    dispProximas += `- ${label}: ${libres} cama${libres !== 1 ? 's' : ''} libre${libres !== 1 ? 's' : ''}\n`;
+  }
+
+  return `Sos Alu, el asistente virtual del Alula Hostel, un hostel en Mar del Plata, Argentina.
+Respondés de forma amigable, cálida y concisa. Detectás el idioma del mensaje y respondés en el mismo idioma (español o inglés).
 
 INFORMACIÓN DEL HOSTEL:
 - Dirección: Av. Patricio Peralta Ramos 1361, frente a Playa Alfonsina, a 5 cuadras del centro
 - WhatsApp: +54 9 223 439-7923 (Coni/Constanza)
 - Instagram: @alulahostel | Facebook: Alula Hostel Mar del Plata
+- Servicios: Living, comedor, cocina equipada, pool, WiFi, té y café de cortesía
+- CHECK-IN: 15hs | CHECK-OUT: 10hs (ambos pueden ser flexibles)
 
-HABITACIONES (26 plazas, todas compartidas mixtas):
-- 2 habitaciones con vista al mar
-- 1 habitación con gran balcón
-- 2 habitaciones con baño en suite
-- 2 habitaciones con baño fuera de la habitación
+HABITACIONES (todas compartidas mixtas, 38 camas en total):
+${Object.values(HABS).map(h => `- ${h.descripcion}`).join('\n')}
 
-PRECIOS orientativos:
-- Temporada alta (Dic-Feb): $35.000 ARS/noche
-- Temporada media (Mar-Nov excepto Jul-Ago): $27.000 ARS/noche
-- Temporada baja (Abr-May, Sep-Oct): $22.000 ARS/noche
+PRECIOS ACTUALES:
+${preciosTexto}
 
-SERVICIOS: Living, comedor, cocina equipada, pool, WiFi, té y café de cortesía.
-CHECK-IN: 15hs | CHECK-OUT: 10hs (ambos pueden ser flexibles)
+DISPONIBILIDAD HOY (${todayStr}):
+- Camas operativas: ${camasDisponibles} (habs 5 y 6 en mantenimiento)
+- Ocupadas: ${ocupadasHoy} | Libres: ${libresHoy}
+- Check-ins hoy: ${checkinsHoy} | Check-outs hoy: ${checkoutsHoy}
+- Check-ins mañana: ${checkinsMañana}
+
+DISPONIBILIDAD PRÓXIMAS 2 SEMANAS:
+${dispProximas}
+EQUIPO:
+- Coni (Constanza) gestiona reservas, responde consultas y actualiza info del hostel vía WhatsApp
+- Leo es el programador que desarrolla este sistema — para dudas técnicas del chat, contactarlo a él
 
 INSTRUCCIONES:
 - Respondé brevemente (máximo 3 párrafos)
-- Para confirmar disponibilidad o reservar, siempre derivá a WhatsApp con Coni
-- Link WhatsApp: https://wa.me/5492234397923
-- Si no sabés algo, derivá a WhatsApp
+- Para reservar o confirmar disponibilidad, siempre derivá a WhatsApp con Coni: https://wa.me/5492234397923
+- Si pregunta por una fecha específica, usá los datos de disponibilidad de arriba para responder con precisión
+- Si no sabés algo, derivá a WhatsApp con Coni
 - Usá emojis con moderación`;
+}
 
 const QUICK_REPLIES = [
   { label: "💰 Precios", msg: "¿Cuáles son los precios?" },
@@ -3434,7 +3509,7 @@ async function sendMessage(text) {
         model: 'llama-3.3-70b-versatile',
         max_tokens: 600,
         messages: [
-          { role: 'system', content: ALULA_SYSTEM_PROMPT },
+          { role: 'system', content: buildSystemPrompt() },
           ...chatHistory
         ]
       })
