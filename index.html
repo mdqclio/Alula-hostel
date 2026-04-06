@@ -3430,6 +3430,17 @@ const QUICK_REPLIES = [
 
 let chatHistory = [];
 let chatApiKey = localStorage.getItem('alula_groq_key') || '';
+
+// Cargar API key desde Firebase si no está en localStorage
+async function loadApiKeyFromFirebase() {
+  try {
+    const config = DB.get('config', {});
+    if (config.groqApiKey && !chatApiKey) {
+      chatApiKey = config.groqApiKey;
+      localStorage.setItem('alula_groq_key', chatApiKey);
+    }
+  } catch(e) { /* silencioso */ }
+}
 let chatTyping = false;
 let chatOpen = false;
 
@@ -3444,9 +3455,10 @@ function toggleChatFloat() {
   document.getElementById('nav-chatbot')?.classList.toggle('active', chatOpen);
 }
 
-function initChatbot() {
+async function initChatbot() {
   chatHistory = [];
   document.getElementById('chatMessages').innerHTML = '';
+  await loadApiKeyFromFirebase();
   if (!chatApiKey) {
     document.getElementById('chatApiWarning').style.display = 'block';
   } else {
@@ -3463,13 +3475,17 @@ function clearChat() {
   showQuickReplies();
 }
 
-function saveApiKey() {
+async function saveApiKey() {
   const key = document.getElementById('chatApiKeyInput').value.trim();
   if (!key) { showNotif('Ingresá la API key', 'error'); return; }
   chatApiKey = key;
   localStorage.setItem('alula_groq_key', key);
+  // Guardar en Firebase para todos los usuarios
+  const config = DB.get('config', {});
+  config.groqApiKey = key;
+  await DB.set('config', config);
   document.getElementById('chatApiWarning').style.display = 'none';
-  showNotif('✅ API key guardada');
+  showNotif('✅ API key guardada para todos los usuarios');
 }
 
 function addUserMessage(text) {
@@ -3655,14 +3671,15 @@ checkPublicMode();
 checkListaNegraMode();
 // Botón formulario público en login — event listener directo para evitar problema de módulo
 document.getElementById('btnPublicForm')?.addEventListener('click', showPublicRegistrationForm);
-loadAllData().then(() => {
+loadAllData().then(async () => {
+  await loadApiKeyFromFirebase();
   showSection('dashboard');
 });
 
 // ===== EXPONER FUNCIONES GLOBALMENTE (requerido por type="module") =====
 Object.assign(window, {
   doLogin, doLogout, showSection, closeSidebar, toggleSidebar, openNuevaReserva,
-  toggleChatFloat, initChatbot, clearChat, sendChat, sendQuickReply, saveApiKey, copyMsg,
+  toggleChatFloat, initChatbot, clearChat, sendChat, sendQuickReply, saveApiKey, copyMsg, loadApiKeyFromFirebase,
   grillaNavegar, grillaHoy, renderGrilla,
   renderListaNegra, copyListaNegraLink, renderScoreStars, setScore,
   mapaNavegar, renderMapaFecha,
