@@ -401,6 +401,31 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
 .chat-bubble.bot:hover .copy-btn { opacity: 1; }
 .chat-bubble.bot .copy-btn:hover { color: var(--accent2); }
 .chat-bubble.typing { color: var(--text3); font-style: italic; }
+.chat-bubble.bot .correct-btn {
+  position: absolute; bottom: 6px; right: 6px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 4px; color: var(--amber);
+  font-size: 10px; padding: 2px 6px; cursor: pointer; opacity: 0; transition: opacity 0.15s;
+}
+.chat-bubble.bot:hover .correct-btn { opacity: 1; }
+.chat-bubble.bot:hover .copy-btn { top: 6px; right: 6px; bottom: auto; }
+.chat-bubble.bot .correct-btn:hover { color: var(--accent2); }
+.chat-correct-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000;
+  align-items:center; justify-content:center;
+}
+.chat-correct-overlay.open { display:flex; }
+.chat-correct-box {
+  background:var(--surface); border:1px solid var(--border2); border-radius:var(--radius2);
+  padding:24px; width:420px; max-width:90vw;
+}
+.chat-correct-box h3 { font-size:16px; font-weight:600; margin-bottom:6px; color:var(--text); }
+.chat-correct-box p { font-size:12px; color:var(--text3); margin-bottom:12px; }
+.chat-correct-box textarea {
+  width:100%; padding:10px 12px; background:var(--surface2); border:1px solid var(--border);
+  border-radius:var(--radius); color:var(--text); font-size:13px; font-family:inherit;
+  resize:vertical; min-height:80px; margin-bottom:12px;
+}
+.chat-correct-box .btn-row { display:flex; gap:8px; justify-content:flex-end; }
 .chat-bottom { padding: 10px 12px; border-top: 1px solid var(--border); }
 .chat-api-warning { font-size: 11px; color: #fbbf24; background: rgba(217,119,6,0.1); border: 1px solid rgba(217,119,6,0.25); border-radius: var(--radius); padding: 8px 10px; margin-bottom:8px; }
 .chat-api-warning a { color: #fbbf24; }
@@ -532,6 +557,20 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
     </nav>
     <div class="sidebar-footer">
       <button class="btn-logout" onclick="doLogout()">← Cerrar sesión</button>
+    </div>
+  </div>
+
+  <!-- MODAL CORRECCIÓN CHATBOT -->
+  <div class="chat-correct-overlay" id="chatCorrectOverlay">
+    <div class="chat-correct-box">
+      <h3>✏️ Corregir respuesta de Alu</h3>
+      <p>Escribí la información correcta. Se guardará en la Base de Conocimiento y Alu la usará en futuras respuestas.</p>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--text3);margin-bottom:12px;" id="chatCorrectOriginal"></div>
+      <textarea id="chatCorrectInput" placeholder="Ej: El check-out es hasta las 11hs, no a las 10hs"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-ghost" onclick="closeChatCorrect()">Cancelar</button>
+        <button class="btn btn-blue" onclick="saveChatCorrect()">Guardar en Base de Conocimiento</button>
+      </div>
     </div>
   </div>
 
@@ -1917,17 +1956,27 @@ function updateBedsSelect() {
   const reservas = DB.get('reservas',[]);
   const beds = habBeds(hab);
   sel.innerHTML = beds.map(b => {
-    // Cama bloqueada si tiene checkin activo O reserva confirmada que se superpone con las fechas elegidas
-    const blocked = reservas.some(r => {
-      if(r.cama !== b.id) return false;
-      if(r.estado === 'checkin') return true;
-      if(r.estado === 'confirmada' && entrada && salida) {
-        // superposición de fechas
-        return r.entrada < salida && r.salida > entrada;
-      }
-      return false;
-    });
-    return `<option value="${b.id}" ${blocked?'disabled':''}>Cama ${b.label}${blocked?' (no disponible)':''}</option>`;
+    const reservasCama = reservas.filter(r =>
+      r.cama === b.id && r.estado !== 'checkout'
+    );
+    let blocked = false;
+    let motivo = '';
+    if (entrada && salida) {
+      // Con fechas: bloquear si hay superposición
+      blocked = reservasCama.some(r =>
+        (r.estado === 'checkin' || r.estado === 'confirmada') &&
+        r.entrada < salida && r.salida > entrada
+      );
+      if (blocked) motivo = ' (no disponible)';
+    } else {
+      // Sin fechas: mostrar si tiene reservas futuras o activas
+      const hoy = new Date().toISOString().slice(0,10);
+      const tieneActiva = reservasCama.some(r =>
+        (r.estado === 'checkin') || (r.estado === 'confirmada' && r.salida > hoy)
+      );
+      if (tieneActiva) motivo = ' (tiene reservas)';
+    }
+    return `<option value="${b.id}" ${blocked?'disabled':''}>Cama ${b.label}${motivo}</option>`;
   }).join('');
 }
 
@@ -3273,6 +3322,36 @@ function renderGrilla() {
 
 
 // ===================== CHATBOT ALULA =====================
+// ===== CORRECCIÓN CHATBOT =====
+let chatCorrectContext = '';
+
+function openChatCorrect(bubbleId) {
+  const el = document.getElementById(bubbleId);
+  if (!el) return;
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll('button').forEach(b => b.remove());
+  chatCorrectContext = (clone.innerText || clone.textContent).trim().slice(0, 200);
+  document.getElementById('chatCorrectOriginal').textContent = 'Respuesta de Alu: "' + chatCorrectContext + (chatCorrectContext.length >= 200 ? '...' : '') + '"';
+  document.getElementById('chatCorrectInput').value = '';
+  document.getElementById('chatCorrectOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('chatCorrectInput').focus(), 100);
+}
+
+function closeChatCorrect() {
+  document.getElementById('chatCorrectOverlay').classList.remove('open');
+  chatCorrectContext = '';
+}
+
+async function saveChatCorrect() {
+  const texto = document.getElementById('chatCorrectInput').value.trim();
+  if (!texto) { showNotif('Escribí la corrección antes de guardar', 'error'); return; }
+  const items = DB.get('aluKnowledge', []);
+  items.push({ texto, fecha: today(), origen: 'corrección' });
+  await DB.set('aluKnowledge', items);
+  closeChatCorrect();
+  showNotif('✅ Corrección guardada en la Base de Conocimiento');
+}
+
 // ===== BASE DE CONOCIMIENTO ALU =====
 function renderKnowledge() {
   const items = DB.get('aluKnowledge', []);
@@ -3283,12 +3362,52 @@ function renderKnowledge() {
     return;
   }
   lista.innerHTML = items.map((item, idx) => `
-    <div style="display:flex;align-items:flex-start;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
-      <div style="flex:1;font-size:14px;color:var(--text);">${item.texto}</div>
-      <div style="font-size:11px;color:var(--text3);white-space:nowrap;margin-top:2px;">${item.fecha||''}</div>
-      <button class="btn btn-red btn-sm" onclick="deleteKnowledgeEntry(${idx})" style="flex-shrink:0;">✕</button>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;" id="kb-item-${idx}">
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <div style="flex:1;">
+          <div class="kb-text-view" id="kb-text-${idx}" style="font-size:14px;color:var(--text);line-height:1.5;">${item.texto}</div>
+          <textarea class="kb-text-edit" id="kb-edit-${idx}" style="display:none;width:100%;padding:8px;background:var(--surface3);border:1px solid var(--accent);border-radius:var(--radius);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;min-height:60px;">${item.texto}</textarea>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">
+          <div style="font-size:11px;color:var(--text3);">${item.fecha||''} ${item.origen==='corrección'?'<span style="color:var(--amber);">✏️ corrección</span>':''}</div>
+          <div style="display:flex;gap:4px;" id="kb-btns-${idx}">
+            <button class="btn btn-ghost btn-sm" onclick="editKnowledgeEntry(${idx})">✏️ editar</button>
+            <button class="btn btn-red btn-sm" onclick="deleteKnowledgeEntry(${idx})">✕</button>
+          </div>
+          <div style="display:none;gap:4px;" id="kb-edit-btns-${idx}">
+            <button class="btn btn-ghost btn-sm" onclick="cancelEditKnowledge(${idx})">Cancelar</button>
+            <button class="btn btn-blue btn-sm" onclick="saveEditKnowledge(${idx})">Guardar</button>
+          </div>
+        </div>
+      </div>
     </div>
   `).join('');
+}
+
+function editKnowledgeEntry(idx) {
+  document.getElementById('kb-text-' + idx).style.display = 'none';
+  document.getElementById('kb-edit-' + idx).style.display = 'block';
+  document.getElementById('kb-btns-' + idx).style.display = 'none';
+  document.getElementById('kb-edit-btns-' + idx).style.display = 'flex';
+  document.getElementById('kb-edit-' + idx).focus();
+}
+
+function cancelEditKnowledge(idx) {
+  document.getElementById('kb-text-' + idx).style.display = 'block';
+  document.getElementById('kb-edit-' + idx).style.display = 'none';
+  document.getElementById('kb-btns-' + idx).style.display = 'flex';
+  document.getElementById('kb-edit-btns-' + idx).style.display = 'none';
+}
+
+async function saveEditKnowledge(idx) {
+  const nuevo = document.getElementById('kb-edit-' + idx).value.trim();
+  if (!nuevo) { showNotif('El texto no puede estar vacío', 'error'); return; }
+  const items = DB.get('aluKnowledge', []);
+  items[idx].texto = nuevo;
+  items[idx].fecha = today();
+  await DB.set('aluKnowledge', items);
+  renderKnowledge();
+  showNotif('✅ Entrada actualizada');
 }
 
 async function saveKnowledgeEntry() {
@@ -3510,9 +3629,10 @@ function addBotMessage(text, isTyping = false) {
 
   const bubbleId = 'msg_' + Date.now();
   div.innerHTML = `
-    <div class="chat-bubble bot ${isTyping ? 'typing' : ''}" id="${bubbleId}">
+    <div class="chat-bubble bot ${isTyping ? 'typing' : ''}" id="${bubbleId}" style="${!isTyping ? 'padding-bottom:22px;' : ''}">
       ${formatted}
       ${!isTyping ? `<button class="copy-btn" onclick="copyMsg('${bubbleId}')">📋 copiar</button>` : ''}
+      ${!isTyping ? `<button class="correct-btn" onclick="openChatCorrect('${bubbleId}')">✏️ corregir</button>` : ''}
     </div>`;
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
@@ -3689,7 +3809,8 @@ Object.assign(window, {
   renderReservas, renderDashboard, renderMapa, renderMapaFecha, renderCheckin,
   renderHuespedes, renderPrecios, renderAcct, renderCaja, renderRoles, renderUsuarios,
   saveReserva, saveHuesped, saveMovimiento, saveRol, saveUsuario, savePago, saveExtension, saveHorario,
-  renderKnowledge, saveKnowledgeEntry, deleteKnowledgeEntry,
+  renderKnowledge, saveKnowledgeEntry, deleteKnowledgeEntry, editKnowledgeEntry, cancelEditKnowledge, saveEditKnowledge,
+  openChatCorrect, closeChatCorrect, saveChatCorrect,
   openEditHuesped, saveEditHuesped, confirmDelete, deleteHuesped, deleteReserva,
   openCambioCama, updateCambioCamaSelect, saveCambioCama,
   limpiarDuplicados,
