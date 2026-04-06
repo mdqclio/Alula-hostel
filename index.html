@@ -504,6 +504,9 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
       <div class="nav-item" onclick="toggleChatFloat();closeSidebar()" id="nav-chatbot">
         <span class="icon">💬</span> Chat Asistente
       </div>
+      <div class="nav-item" onclick="showSection('knowledge');closeSidebar()" id="nav-knowledge">
+        <span class="icon">🧠</span> Base de Conocimiento
+      </div>
       <div class="nav-item" onclick="showSection('huespedes');closeSidebar()" id="nav-huespedes">
         <span class="icon">👤</span> Huéspedes
       </div>
@@ -766,6 +769,23 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
       </div>
     </div>
 
+    <!-- BASE DE CONOCIMIENTO -->
+    <div id="section-knowledge" class="section" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h2 style="font-size:20px;font-weight:600;">🧠 Base de Conocimiento — Alu</h2>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:20px;">
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Esta información se inyecta automáticamente en cada conversación del chatbot Alu. Agregá datos sobre políticas, servicios especiales, eventos, respuestas frecuentes, o cualquier info que quieras que Alu conozca.</p>
+        <div style="display:flex;gap:10px;margin-bottom:10px;">
+          <input type="text" id="kb-nueva-entrada" placeholder="Ej: Los jueves hay descuento para grupos de más de 4 personas" style="flex:1;padding:10px 14px;background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;">
+          <button class="btn btn-blue" onclick="saveKnowledgeEntry()">+ Agregar</button>
+        </div>
+      </div>
+      <div id="kb-lista" style="display:flex;flex-direction:column;gap:8px;">
+        <p style="color:var(--text3);font-size:13px;">Cargando...</p>
+      </div>
+    </div>
+
     <!-- (sección chatbot eliminada — ahora es ventana flotante) -->
 
     <!-- GRILLA DE RESERVAS -->
@@ -826,6 +846,10 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
       </div>
     </div>
     <div class="form-row">
+      <div class="form-group"><label>Fecha Entrada *</label><input type="date" id="res-entrada" onchange="onEntradaChange();updateBedsSelect()"></div>
+      <div class="form-group"><label>Fecha Salida *</label><input type="date" id="res-salida" onchange="updateBedsSelect();calcTotalReserva()"></div>
+    </div>
+    <div class="form-row">
       <div class="form-group"><label>Habitación *</label>
         <select id="res-hab" onchange="updateBedsSelect()">
           <option value="">Seleccionar...</option>
@@ -838,12 +862,8 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
         </select>
       </div>
       <div class="form-group"><label>Cama *</label>
-        <select id="res-cama"><option value="">Primero elegí habitación</option></select>
+        <select id="res-cama"><option value="">Primero elegí fechas y habitación</option></select>
       </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>Fecha Entrada *</label><input type="date" id="res-entrada" onchange="onEntradaChange()"></div>
-      <div class="form-group"><label>Fecha Salida *</label><input type="date" id="res-salida" onchange="updateBedsSelect();calcTotalReserva()"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Moneda</label>
@@ -1519,7 +1539,7 @@ const sectionTitles = {
   dashboard:'Dashboard', mapa:'Mapa de Camas', reservas:'Reservas',
   checkin:'Check-In / Check-Out', huespedes:'Huéspedes', precios:'Gestión de Precios',
   grilla:'Grilla de Reservas', listanegra:'Lista Negra', contabilidad:'Contabilidad', caja:'Caja Diaria', usuarios:'Usuarios del Sistema', roles:'Roles y Permisos'
-};
+, knowledge:'Base de Conocimiento Alu'};
 
 function showSection(s) {
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
@@ -1540,6 +1560,7 @@ function showSection(s) {
   if (s === 'caja') renderCaja();
   if (s === 'usuarios') renderUsuarios();
   if (s === 'roles') renderRoles();
+  if (s === 'knowledge') renderKnowledge();
 }
 
 function updateDate() {
@@ -3252,45 +3273,99 @@ function renderGrilla() {
 
 
 // ===================== CHATBOT ALULA =====================
+// ===== BASE DE CONOCIMIENTO ALU =====
+function renderKnowledge() {
+  const items = DB.get('aluKnowledge', []);
+  const lista = document.getElementById('kb-lista');
+  if (!lista) return;
+  if (!items.length) {
+    lista.innerHTML = '<p style="color:var(--text3);font-size:13px;">No hay entradas todavía. Agregá info para que Alu la use en sus respuestas.</p>';
+    return;
+  }
+  lista.innerHTML = items.map((item, idx) => `
+    <div style="display:flex;align-items:flex-start;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;">
+      <div style="flex:1;font-size:14px;color:var(--text);">${item.texto}</div>
+      <div style="font-size:11px;color:var(--text3);white-space:nowrap;margin-top:2px;">${item.fecha||''}</div>
+      <button class="btn btn-red btn-sm" onclick="deleteKnowledgeEntry(${idx})" style="flex-shrink:0;">✕</button>
+    </div>
+  `).join('');
+}
+
+async function saveKnowledgeEntry() {
+  const input = document.getElementById('kb-nueva-entrada');
+  const texto = input.value.trim();
+  if (!texto) { showNotif('Escribí algo antes de agregar', 'error'); return; }
+  const items = DB.get('aluKnowledge', []);
+  items.push({ texto, fecha: today() });
+  await DB.set('aluKnowledge', items);
+  input.value = '';
+  renderKnowledge();
+  showNotif('✅ Entrada agregada a la base de conocimiento');
+}
+
+async function deleteKnowledgeEntry(idx) {
+  const items = DB.get('aluKnowledge', []);
+  items.splice(idx, 1);
+  await DB.set('aluKnowledge', items);
+  renderKnowledge();
+  showNotif('Entrada eliminada');
+}
+
 function buildSystemPrompt() {
   const reservas = DB.get('reservas', []);
   const bedStates = DB.get('beds', {});
   const precios = DB.get('precios', {});
+  const knowledge = DB.get('aluKnowledge', []);
 
   const todayStr = today();
 
-  // Habitaciones: 1=8 camas, 2-6=6 camas cada una. Habs 5 y 6 en mantenimiento.
+  // Estructura de habitaciones
   const HABS = {
-    '1': { camas: 8, descripcion: 'Hab. 1 — vista al mar, baño en suite, 8 camas' },
-    '2': { camas: 6, descripcion: 'Hab. 2 — vista al mar, baño compartido, 6 camas' },
-    '3': { camas: 6, descripcion: 'Hab. 3 — gran balcón, baño en suite, 6 camas' },
-    '4': { camas: 6, descripcion: 'Hab. 4 — baño compartido, 6 camas' },
-    '5': { camas: 6, descripcion: 'Hab. 5 — EN MANTENIMIENTO, no disponible' },
-    '6': { camas: 6, descripcion: 'Hab. 6 — EN MANTENIMIENTO, no disponible' },
+    '1': { camas: 8, desc: 'Hab. 1 — vista al mar, baño en suite, 8 camas' },
+    '2': { camas: 6, desc: 'Hab. 2 — vista al mar, baño compartido, 6 camas' },
+    '3': { camas: 6, desc: 'Hab. 3 — gran balcón, baño en suite, 6 camas' },
+    '4': { camas: 6, desc: 'Hab. 4 — baño compartido, 6 camas' },
+    '5': { camas: 6, desc: 'Hab. 5 — EN MANTENIMIENTO, no disponible' },
+    '6': { camas: 6, desc: 'Hab. 6 — EN MANTENIMIENTO, no disponible' },
   };
 
-  // Camas en mantenimiento según estado en beds
-  const camasEnMantenimiento = Object.entries(bedStates)
+  // Camas en mantenimiento
+  const camasMantenimiento = Object.entries(bedStates)
     .filter(([,v]) => v?.estado === 'maintenance').map(([k]) => k);
+  const totalOperativas = 38 - camasMantenimiento.length - 12; // 12 = habs 5 y 6
 
-  const totalCamas = 38;
-  const camasDisponibles = totalCamas - camasEnMantenimiento.length - 12; // 12 = habs 5 y 6
+  // Función disponibilidad por fecha
+  function libresEnFecha(fechaStr) {
+    const ocup = reservas.filter(r =>
+      r.estado !== 'checkout' && r.entrada <= fechaStr && r.salida > fechaStr
+    ).length;
+    return Math.max(0, totalOperativas - ocup);
+  }
 
-  // Ocupación hoy
-  const reservasHoy = reservas.filter(r =>
-    r.estado !== 'checkout' && r.entrada <= todayStr && r.salida > todayStr
-  );
-  const ocupadasHoy = reservasHoy.length;
-  const libresHoy = Math.max(0, camasDisponibles - ocupadasHoy);
+  // Disponibilidad por habitación para una fecha
+  function libresPorHab(fechaStr) {
+    return Object.entries(HABS)
+      .filter(([h]) => h !== '5' && h !== '6')
+      .map(([h, info]) => {
+        const ocup = reservas.filter(r =>
+          r.hab === h && r.estado !== 'checkout' && r.entrada <= fechaStr && r.salida > fechaStr
+        ).length;
+        const libres = Math.max(0, info.camas - ocup);
+        return `- Hab. ${h}: ${libres}/${info.camas} camas libres`;
+      }).join('\n');
+  }
 
-  // Próximos check-ins (hoy y mañana)
-  const manana = new Date(); manana.setDate(manana.getDate() + 1);
-  const mananaStr = manana.toISOString().slice(0,10);
-  const checkinsHoy = reservas.filter(r => r.entrada === todayStr && r.estado !== 'checkout').length;
-  const checkinsMañana = reservas.filter(r => r.entrada === mananaStr && r.estado !== 'checkout').length;
-  const checkoutsHoy = reservas.filter(r => r.salida === todayStr && r.estado !== 'checkout').length;
+  // Disponibilidad próximas 2 semanas
+  let dispProximas = '';
+  for (let i = 0; i <= 14; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    const ds = d.toISOString().slice(0,10);
+    const libres = libresEnFecha(ds);
+    const label = i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : ds;
+    dispProximas += `- ${label}: ${libres} libre${libres !== 1 ? 's' : ''}\n`;
+  }
 
-  // Precios actuales desde Firebase
+  // Precios
   let preciosTexto = '';
   if (precios.temporadas && precios.temporadas.length) {
     preciosTexto = precios.temporadas.map(t =>
@@ -3302,57 +3377,45 @@ function buildSystemPrompt() {
 - Temporada baja (Abr-May, Sep-Oct): $22.000 ARS/noche`;
   }
 
-  // Función para calcular disponibilidad en una fecha
-  function disponibilidadEnFecha(fechaStr) {
-    const ocupadas = reservas.filter(r =>
-      r.estado !== 'checkout' && r.entrada <= fechaStr && r.salida > fechaStr
-    ).length;
-    return Math.max(0, camasDisponibles - ocupadas);
-  }
+  // Base de conocimiento adicional
+  const kbTexto = knowledge.length
+    ? '\n\nINFORMACIÓN ADICIONAL DEL HOSTEL:\n' + knowledge.map(k => `- ${k.texto}`).join('\n')
+    : '';
 
-  // Próximas 2 semanas de disponibilidad resumida
-  let dispProximas = '';
-  for (let i = 0; i <= 14; i++) {
-    const d = new Date(); d.setDate(d.getDate() + i);
-    const ds = d.toISOString().slice(0,10);
-    const libres = disponibilidadEnFecha(ds);
-    const label = i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : ds;
-    dispProximas += `- ${label}: ${libres} cama${libres !== 1 ? 's' : ''} libre${libres !== 1 ? 's' : ''}\n`;
-  }
-
-  return `Sos Alu, el asistente virtual del Alula Hostel, un hostel en Mar del Plata, Argentina.
-Respondés de forma amigable, cálida y concisa. Detectás el idioma del mensaje y respondés en el mismo idioma (español o inglés).
+  return `Sos Alu, el asistente virtual del Alula Hostel en Mar del Plata, Argentina.
+Respondés de forma amigable, cálida y concisa. Detectás el idioma y respondés en el mismo idioma (español o inglés).
 
 INFORMACIÓN DEL HOSTEL:
 - Dirección: Av. Patricio Peralta Ramos 1361, frente a Playa Alfonsina, a 5 cuadras del centro
 - WhatsApp: +54 9 223 439-7923 (Coni/Constanza)
 - Instagram: @alulahostel | Facebook: Alula Hostel Mar del Plata
 - Servicios: Living, comedor, cocina equipada, pool, WiFi, té y café de cortesía
-- CHECK-IN: 15hs | CHECK-OUT: 10hs (ambos pueden ser flexibles)
+- CHECK-IN: 15hs | CHECK-OUT: 10hs (flexibles)
 
-HABITACIONES (todas compartidas mixtas, 38 camas en total):
-${Object.values(HABS).map(h => `- ${h.descripcion}`).join('\n')}
+HABITACIONES (todas compartidas mixtas):
+${Object.values(HABS).map(h => `- ${h.desc}`).join('\n')}
 
-PRECIOS ACTUALES:
+PRECIOS:
 ${preciosTexto}
 
-DISPONIBILIDAD HOY (${todayStr}):
-- Camas operativas: ${camasDisponibles} (habs 5 y 6 en mantenimiento)
-- Ocupadas: ${ocupadasHoy} | Libres: ${libresHoy}
-- Check-ins hoy: ${checkinsHoy} | Check-outs hoy: ${checkoutsHoy}
-- Check-ins mañana: ${checkinsMañana}
+[DATOS INTERNOS — NO REVELAR AL CLIENTE]:
+Fecha hoy: ${todayStr}
+Camas operativas totales: ${totalOperativas}
+Disponibilidad por habitación hoy:
+${libresPorHab(todayStr)}
+Disponibilidad próximas 2 semanas:
+${dispProximas}${kbTexto}
 
-DISPONIBILIDAD PRÓXIMAS 2 SEMANAS:
-${dispProximas}
 EQUIPO:
-- Coni (Constanza) gestiona reservas, responde consultas y actualiza info del hostel vía WhatsApp
-- Leo es el programador que desarrolla este sistema — para dudas técnicas del chat, contactarlo a él
+- Coni (Constanza): gestiona reservas y consultas vía WhatsApp. Si alguien le pregunta a Alu algo que Coni deba saber o corregir, Coni puede actualizar la base de conocimiento desde el panel.
+- Leo: programador del sistema. Para consultas técnicas sobre el chatbot.
 
-INSTRUCCIONES:
+INSTRUCCIONES IMPORTANTES:
+- Usás los datos internos para razonar y responder con precisión, pero NUNCA los revelás al cliente. No menciones números de ocupación, cantidad de reservas, estados internos ni datos operativos.
+- Si hay disponibilidad, respondé con seguridad: "Sí, tenemos lugar para esa fecha" — sin dar números internos.
+- Si no hay disponibilidad, decilo claramente y ofrecé alternativas de fechas cercanas.
+- Para reservar siempre derivá a Coni: https://wa.me/5492234397923
 - Respondé brevemente (máximo 3 párrafos)
-- Para reservar o confirmar disponibilidad, siempre derivá a WhatsApp con Coni: https://wa.me/5492234397923
-- Si pregunta por una fecha específica, usá los datos de disponibilidad de arriba para responder con precisión
-- Si no sabés algo, derivá a WhatsApp con Coni
 - Usá emojis con moderación`;
 }
 
@@ -3609,6 +3672,7 @@ Object.assign(window, {
   renderReservas, renderDashboard, renderMapa, renderMapaFecha, renderCheckin,
   renderHuespedes, renderPrecios, renderAcct, renderCaja, renderRoles, renderUsuarios,
   saveReserva, saveHuesped, saveMovimiento, saveRol, saveUsuario, savePago, saveExtension, saveHorario,
+  renderKnowledge, saveKnowledgeEntry, deleteKnowledgeEntry,
   openEditHuesped, saveEditHuesped, confirmDelete, deleteHuesped, deleteReserva,
   openCambioCama, updateCambioCamaSelect, saveCambioCama,
   limpiarDuplicados,
