@@ -1600,7 +1600,7 @@ function showSection(s) {
   if (s === 'caja') renderCaja();
   if (s === 'usuarios') renderUsuarios();
   if (s === 'roles') renderRoles();
-  if (s === 'knowledge') renderKnowledge();
+  if (s === 'knowledge') setTimeout(() => renderKnowledge(), 50);
 }
 
 function updateDate() {
@@ -3355,12 +3355,10 @@ async function saveChatCorrect() {
 
 // ===== BASE DE CONOCIMIENTO ALU =====
 function renderKnowledge() {
-  // Asegurar que aluKnowledge exista en cache
-  if (!DB.get('aluKnowledge', null)) DB.set('aluKnowledge', []);
   const items = DB.get('aluKnowledge', []);
   const lista = document.getElementById('kb-lista');
-  if (!lista) return;
-  if (!items.length) {
+  if (!lista) { console.warn('kb-lista no encontrado'); return; }
+  if (!Array.isArray(items) || !items.length) {
     lista.innerHTML = '<p style="color:var(--text3);font-size:13px;">No hay entradas todavía. Usá el campo de arriba para agregar info que Alu usará en sus respuestas.</p>';
     return;
   }
