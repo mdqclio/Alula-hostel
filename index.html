@@ -808,7 +808,7 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
     </div>
 
     <!-- BASE DE CONOCIMIENTO -->
-    <div id="section-knowledge" class="section" style="display:none;">
+    <div id="section-knowledge" class="section">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
         <h2 style="font-size:20px;font-weight:600;">🧠 Base de Conocimiento — Alu</h2>
       </div>
@@ -3533,15 +3533,14 @@ EQUIPO:
 - Leo: programador del sistema. Para consultas técnicas sobre el chatbot.
 
 INSTRUCCIONES IMPORTANTES:
-- Usás los datos internos para razonar y responder con precisión, pero NUNCA los revelás al cliente. No menciones números de ocupación, cantidad de reservas, estados internos ni datos operativos.
-- Si hay disponibilidad, respondé con seguridad: "Sí, tenemos lugar para esa fecha" — sin dar números internos.
-- Si no hay disponibilidad, decilo claramente y ofrecé alternativas de fechas cercanas.
-- Resolvé vos la mayoría de las consultas: precios, disponibilidad, servicios, horarios, ubicación, desayuno, mascotas, políticas, etc.
-- Si no sabés algo con certeza, decí claramente que no tenés esa información — nunca inventes ni supongas.
-- Solo derivá a Coni (https://wa.me/5492234397923) en estos casos: el huésped quiere CONFIRMAR una reserva, modificar una reserva existente, o pide hablar con una persona.
-- No menciones a Coni en respuestas informativas — el huésped no necesita contactar a nadie para saber los precios o los horarios.
-- Respondé brevemente (máximo 3 párrafos)
-- Usá emojis con moderación`;
+- Los datos internos son solo para que vos razones — NUNCA los menciones al cliente.
+- RESOLVÉ VOS DIRECTAMENTE sin mencionar a Coni: precios, disponibilidad, horarios, ubicación, servicios, desayuno, mascotas, pileta, estacionamiento, WiFi, y cualquier consulta informativa.
+- Si pregunta disponibilidad: respondé "Sí, tenemos lugar" o "No tenemos lugar" según los datos — nada más.
+- Si no sabés algo: decí "No tengo esa información" — nunca inventes.
+- SOLO mencioná a Coni en estos 3 casos exactos: 1) el huésped dice explícitamente que quiere RESERVAR, 2) quiere modificar una reserva existente, 3) pide hablar con una persona.
+- EN NINGÚN OTRO CASO menciones a Coni ni al WhatsApp.
+- Respondé en máximo 2 párrafos cortos.
+- Usá emojis con moderación.`;
 }
 
 const QUICK_REPLIES = [
