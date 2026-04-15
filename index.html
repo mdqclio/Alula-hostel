@@ -553,6 +553,9 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
       <div class="nav-item admin-only" onclick="showSection('roles');closeSidebar()" id="nav-roles" style="display:none;">
         <span class="icon">🔑</span> Roles y Permisos
       </div>
+      <div class="nav-item admin-only" onclick="showSection('config');closeSidebar()" id="nav-config" style="display:none;">
+        <span class="icon">⚙️</span> Configuración
+      </div>
     </nav>
     <div class="sidebar-footer">
       <button class="btn-logout" onclick="doLogout()">← Cerrar sesión</button>
@@ -861,6 +864,11 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
         <button class="btn btn-blue btn-sm" onclick="openModal('modalRol')">+ Nuevo Rol</button>
       </div>
       <div class="roles-grid" id="rolesGrid"></div>
+    </div>
+
+    <!-- CONFIGURACION -->
+    <div id="section-config" class="section">
+      <div id="configContent"></div>
     </div>
 
   </div>
@@ -1578,8 +1586,8 @@ function applyRoleUI(rolKey, rolObj) {
 const sectionTitles = {
   dashboard:'Dashboard', mapa:'Mapa de Camas', reservas:'Reservas',
   checkin:'Check-In / Check-Out', huespedes:'Huéspedes', precios:'Gestión de Precios',
-  grilla:'Grilla de Reservas', listanegra:'Lista Negra', contabilidad:'Contabilidad', caja:'Caja Diaria', usuarios:'Usuarios del Sistema', roles:'Roles y Permisos'
-, knowledge:'Base de Conocimiento Alu'};
+  grilla:'Grilla de Reservas', listanegra:'Lista Negra', contabilidad:'Contabilidad', caja:'Caja Diaria', usuarios:'Usuarios del Sistema', roles:'Roles y Permisos',
+  knowledge:'Base de Conocimiento Alu', config:'Configuración del Sistema'};
 
 function showSection(s) {
   document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
@@ -1601,6 +1609,7 @@ function showSection(s) {
   if (s === 'usuarios') renderUsuarios();
   if (s === 'roles') renderRoles();
   if (s === 'knowledge') setTimeout(() => renderKnowledge(), 50);
+  if (s === 'config') renderConfig();
 }
 
 function updateDate() {
@@ -1610,11 +1619,36 @@ function updateDate() {
 }
 
 // ===================== HELPERS =====================
-function bedCount(hab) { return hab === '1' ? 8 : 6; }
+const CONFIG_DEFAULTS = {
+  hostel: { nombre: 'Alula Hostel', habitaciones: 6, camasHab1: 8, camasHabResto: 6 },
+  horarios: { checkin: '14:00', checkout: '10:00', lateCheckout: '12:00', earlyCheckin: '11:00' },
+  temporadas: {
+    alta:  { nombre: 'Temporada Alta',  precio: 35000, moneda: 'ARS' },
+    media: { nombre: 'Temporada Media', precio: 27000, moneda: 'ARS' },
+    baja:  { nombre: 'Temporada Baja',  precio: 22000, moneda: 'ARS' },
+  }
+};
+function getConfig() {
+  const stored = DB.get('config', {});
+  return {
+    hostel:    { ...CONFIG_DEFAULTS.hostel,    ...(stored.hostel    || {}) },
+    horarios:  { ...CONFIG_DEFAULTS.horarios,  ...(stored.horarios  || {}) },
+    temporadas: {
+      alta:  { ...CONFIG_DEFAULTS.temporadas.alta,  ...((stored.temporadas||{}).alta  || {}) },
+      media: { ...CONFIG_DEFAULTS.temporadas.media, ...((stored.temporadas||{}).media || {}) },
+      baja:  { ...CONFIG_DEFAULTS.temporadas.baja,  ...((stored.temporadas||{}).baja  || {}) },
+    }
+  };
+}
+function getTotalCamas() {
+  const c = getConfig().hostel;
+  return c.camasHab1 + (c.habitaciones - 1) * c.camasHabResto;
+}
+function bedCount(hab) { const c = getConfig().hostel; return hab === '1' ? c.camasHab1 : c.camasHabResto; }
 function habFirstBed(hab) {
-  // Hab1: camas 1-8, Hab2: 9-14, Hab3: 15-20, Hab4: 21-26, Hab5: 27-32, Hab6: 33-38
+  const c = getConfig().hostel;
   if(hab === '1') return 1;
-  return 8 + (Number(hab) - 2) * 6 + 1;
+  return c.camasHab1 + (Number(hab) - 2) * c.camasHabResto + 1;
 }
 function habBeds(hab) {
   const n = bedCount(hab);
@@ -1629,7 +1663,7 @@ function camaLabel(camaId) {
 }
 function allBeds() {
   let beds = [];
-  for(let h=1;h<=6;h++) beds = beds.concat(habBeds(String(h)));
+  for(let h=1;h<=getConfig().hostel.habitaciones;h++) beds = beds.concat(habBeds(String(h)));
   return beds;
 }
 function getHuespedNombre(id) {
@@ -1643,7 +1677,8 @@ function fmtMoney(m, mon='ARS') {
   if(mon==='USD') return 'USD '+Number(m).toLocaleString('es-AR');
   return '$'+Number(m).toLocaleString('es-AR');
 }
-function today() { return new Date().toISOString().split('T')[0]; }
+function dateToLocal(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function today() { return dateToLocal(new Date()); }
 function platBadge(p) {
   const map = { directo:'blue', booking:'green', airbnb:'amber', otro:'gray' };
   return `<span class="badge ${map[p]||'gray'}">${p}</span>`;
@@ -1684,8 +1719,9 @@ function renderDashboard() {
   const reservas = DB.get('reservas',[]);
   const tod = today();
   const occupied = reservas.filter(r=>r.estado==='checkin').length;
-  document.getElementById('stat-occ').textContent = `${occupied}/38`;
-  document.getElementById('stat-occ-pct').textContent = Math.round(occupied/38*100)+'% ocupación';
+  const _total = getTotalCamas();
+  document.getElementById('stat-occ').textContent = `${occupied}/${_total}`;
+  document.getElementById('stat-occ-pct').textContent = Math.round(occupied/_total*100)+'% ocupación';
 
   const todayMovs = DB.get('movimientos',[]).filter(m=>m.fecha===tod&&m.tipo==='ingreso');
   const ingARS = todayMovs.filter(m=>m.moneda==='ARS').reduce((a,b)=>a+Number(b.monto),0);
@@ -1724,7 +1760,7 @@ function onEntradaChange() {
   const salidaEl = document.getElementById('res-salida');
   // Forzar que la salida sea al menos 1 día después de la entrada
   if(entrada) {
-    salidaEl.min = new Date(new Date(entrada).getTime() + 86400000).toISOString().split('T')[0];
+    const _nd = new Date(entrada + 'T12:00:00'); _nd.setDate(_nd.getDate() + 1); salidaEl.min = dateToLocal(_nd);
     if(salidaEl.value && salidaEl.value <= entrada) {
       salidaEl.value = salidaEl.min;
     }
@@ -1747,7 +1783,7 @@ function renderMapa(fechaVer) {
 
   grid.innerHTML = '';
 
-  for(let h=1;h<=6;h++) {
+  for(let h=1;h<=getConfig().hostel.habitaciones;h++) {
     const hs = String(h);
     const beds = habBeds(hs);
 
@@ -1818,7 +1854,7 @@ function renderMapa(fechaVer) {
     (r.estado==='checkin'||r.estado==='confirmada') &&
     r.entrada.substring(0,10) <= fechaConsulta && r.salida.substring(0,10) > fechaConsulta
   ).length;
-  const pct = Math.round(totalOcc/38*100);
+  const pct = Math.round(totalOcc/getTotalCamas()*100);
   let resumen = document.getElementById('mapaResumen');
   if(!resumen) {
     resumen = document.createElement('div');
@@ -1827,7 +1863,7 @@ function renderMapa(fechaVer) {
     grid.parentNode.insertBefore(resumen, grid);
   }
   resumen.innerHTML = `
-    <span>📊 <strong style="color:var(--text)">${totalOcc}/38</strong> camas ocupadas</span>
+    <span>📊 <strong style="color:var(--text)">${totalOcc}/${getTotalCamas()}</strong> camas ocupadas</span>
     <span style="color:var(--text3)">|</span>
     <span style="color:${pct>80?'#f87171':pct>50?'#fbbf24':'#34d399'};font-weight:600">${pct}% ocupación</span>
     ${esModoConsulta?`<span class="badge amber">Vista: ${fechaConsulta}</span>`:''}
@@ -1878,7 +1914,7 @@ function cycleBed(bedId) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div style="background:var(--surface2);border-radius:var(--radius);padding:12px;">
           <span style="font-size:11px;color:var(--text3);display:block">Total estadía</span>
-          <strong style="color:var(--accent2)">${fmtMoney(resOcupada.precio*nights,resOcupada.moneda)}</strong>
+          <strong style="color:var(--accent2)">${fmtMoney(Math.round(resOcupada.precio*nights),resOcupada.moneda)}</strong>
         </div>
         <div style="background:var(--surface2);border-radius:var(--radius);padding:12px;">
           <span style="font-size:11px;color:var(--text3);display:block">Saldo pendiente</span>
@@ -1971,7 +2007,7 @@ function updateBedsSelect() {
       if (blocked) motivo = ' (no disponible)';
     } else {
       // Sin fechas: mostrar si tiene reservas futuras o activas
-      const hoy = new Date().toISOString().slice(0,10);
+      const hoy = today();
       const tieneActiva = reservasCama.some(r =>
         (r.estado === 'checkin') || (r.estado === 'confirmada' && r.salida > hoy)
       );
@@ -2029,10 +2065,10 @@ async function saveReserva() {
     showNotif('Esa cama ya está reservada para esas fechas','error'); return; 
   }
   savingReserva = true;
-  const precio = Number(document.getElementById('res-precio').value)||27000;
+  const precio = Number(document.getElementById('res-precio').value)||getConfig().temporadas.media.precio;
   const moneda = document.getElementById('res-moneda').value;
   const nights = nightsBetween(entrada, salida);
-  const totalEstadia = precio * nights;
+  const totalEstadia = Math.round(precio * nights);
   const pagado = Number(document.getElementById('res-pagado').value)||0;
   const saldo = Math.max(totalEstadia - pagado, 0);
   const estadoPago = document.getElementById('res-estado-pago').value;
@@ -2100,17 +2136,13 @@ async function confirmCheckin() {
   if(!r.pagado || r.pagado === 0) {
     const nights = nightsBetween(r.entrada, r.salida);
     const movs = DB.get('movimientos',[]);
-    movs.push({ id:'m'+Date.now(), tipo:'ingreso', cat:'reserva', moneda:r.moneda, monto:r.precio*nights, metodo:r.pago, fecha:today(), concepto:`Check-in ${getHuespedNombre(r.huespedId)} - Hab.${r.hab}` });
+    movs.push({ id:'m'+Date.now(), tipo:'ingreso', cat:'reserva', moneda:r.moneda, monto:Math.round(r.precio*nights), metodo:r.pago, fecha:today(), concepto:`Check-in ${getHuespedNombre(r.huespedId)} - Hab.${r.hab}` });
     await DB.set('movimientos', movs);
-    r.pagado = r.precio * nights;
+    r.pagado = Math.round(r.precio * nights);
     r.saldo = 0;
     r.estadoPago = 'total';
   }
   await DB.set('reservas', reservas);
-  // Actualizar estado de cama en beds
-  const beds = DB.get('beds',{});
-  beds[r.cama] = 'occupied';
-  await DB.set('beds', beds);
   closeModal('modalCheckin');
   renderReservas();
   renderCheckin();
@@ -2359,6 +2391,8 @@ function saveHuesped() {
   const apellido = document.getElementById('h-apellido').value.trim();
   const dni = document.getElementById('h-dni').value.trim();
   if(!nombre||!apellido||!dni) { showNotif('Nombre, apellido y DNI son obligatorios','error'); return; }
+  const _emailVal = document.getElementById('h-email').value.trim();
+  if(_emailVal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(_emailVal)) { showNotif('Formato de email inválido','error'); return; }
   const foto = document.getElementById('docPreview').src || null;
   const huespedes = DB.get('huespedes',[]);
   huespedes.push({
@@ -2463,7 +2497,8 @@ function deleteTemporada(id) {
 }
 function addTemporada() {
   const p = DB.get('precios',{});
-  p.temporadas.push({ id:'t'+Date.now(), nombre:'Nueva', meses:'', precio:27000, moneda:'ARS' });
+  const _cfgT = getConfig().temporadas.media;
+  p.temporadas.push({ id:'t'+Date.now(), nombre:'Nueva', meses:'', precio:_cfgT.precio, moneda:_cfgT.moneda });
   DB.set('precios', p);
   renderPrecios('temporada');
 }
@@ -2849,8 +2884,14 @@ async function deleteHuesped(id) {
 }
 
 async function deleteReserva(id) {
-  const reservas = DB.get('reservas',[]).filter(r=>r.id!==id);
-  await DB.set('reservas', reservas);
+  const allRes = DB.get('reservas',[]);
+  const toDelete = allRes.find(r=>r.id===id);
+  await DB.set('reservas', allRes.filter(r=>r.id!==id));
+  if(toDelete) {
+    const beds = DB.get('beds',{});
+    delete beds[toDelete.cama];
+    await DB.set('beds', beds);
+  }
   closeModal('modalConfirmDelete');
   renderReservas();
   showNotif('Reserva eliminada');
@@ -3041,10 +3082,11 @@ function openHorario(rid, tipo) {
   document.getElementById('horario-res-id').value = rid;
   document.getElementById('horario-tipo').value = tipo;
   const isLate = tipo === 'late';
+  const _hor = getConfig().horarios;
   document.getElementById('modalHorarioTitle').textContent = isLate ? '🌙 Late Check-out' : '🌅 Early Check-in';
   document.getElementById('horario-hora-label').textContent = isLate ? 'Hora de salida solicitada' : 'Hora de entrada solicitada';
-  document.getElementById('horario-estandar').value = isLate ? '10:00' : '14:00';
-  document.getElementById('horario-hora').value = isLate ? '12:00' : '11:00';
+  document.getElementById('horario-estandar').value = isLate ? _hor.checkout : _hor.checkin;
+  document.getElementById('horario-hora').value = isLate ? _hor.lateCheckout : _hor.earlyCheckin;
   document.getElementById('horario-cobrar').value = 'no';
   document.getElementById('horario-monto').value = '';
   document.getElementById('horario-monto-group').style.display = 'none';
@@ -3054,7 +3096,7 @@ function openHorario(rid, tipo) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${getHuespedNombre(r.huespedId)}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Hab. / Cama</span><strong>Hab.${r.hab} / C${camaLabel(r.cama)}</strong></div>
-      <div><span style="color:var(--text3);display:block;font-size:11px">${isLate?'Salida estándar':'Entrada estándar'}</span><strong style="color:#fbbf24">${isLate?'10:00 hs':'14:00 hs'}</strong></div>
+      <div><span style="color:var(--text3);display:block;font-size:11px">${isLate?'Salida estándar':'Entrada estándar'}</span><strong style="color:#fbbf24">${isLate?_hor.checkout:_hor.checkin} hs</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">${isLate?'Fecha de salida':'Fecha de entrada'}</span><strong>${isLate?r.salida:r.entrada}</strong></div>
     </div>`;
   openModal('modalHorario');
@@ -3236,9 +3278,9 @@ function grillaHoy() {
 
 function grillaNavegar(dias) {
   if (!grillaFechaInicio) grillaFechaInicio = today();
-  const d = new Date(grillaFechaInicio);
+  const d = new Date(grillaFechaInicio + 'T12:00:00');
   d.setDate(d.getDate() + dias);
-  grillaFechaInicio = d.toISOString().split('T')[0];
+  grillaFechaInicio = dateToLocal(d);
   renderGrilla();
 }
 
@@ -3250,9 +3292,9 @@ function renderGrilla() {
   // Generar array de fechas a mostrar
   const fechas = [];
   for (let i = 0; i < GRILLA_DIAS; i++) {
-    const d = new Date(grillaFechaInicio);
+    const d = new Date(grillaFechaInicio + 'T12:00:00');
     d.setDate(d.getDate() + i);
-    fechas.push(d.toISOString().split('T')[0]);
+    fechas.push(dateToLocal(d));
   }
 
   // Label de rango
@@ -3351,6 +3393,144 @@ async function saveChatCorrect() {
   await DB.set('aluKnowledge', items);
   closeChatCorrect();
   showNotif('✅ Corrección guardada en la Base de Conocimiento');
+}
+
+// ===================== CONFIGURACIÓN =====================
+function renderConfig() {
+  const cfg = getConfig();
+  const c = document.getElementById('configContent');
+  c.innerHTML = `
+    <div style="display:grid;gap:24px;">
+
+      <!-- HOSTEL -->
+      <div class="card">
+        <div class="card-header"><h3>🏨 Estructura del Hostel</h3></div>
+        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
+          <div class="form-group">
+            <label>Nombre del hostel</label>
+            <input type="text" id="cfg-nombre" value="${cfg.hostel.nombre}" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 10px;width:100%">
+          </div>
+          <div class="form-group">
+            <label>Número de habitaciones</label>
+            <input type="number" id="cfg-habs" value="${cfg.hostel.habitaciones}" min="1" max="20" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 10px;width:100%">
+          </div>
+          <div class="form-group">
+            <label>Camas en Habitación 1</label>
+            <input type="number" id="cfg-camas-h1" value="${cfg.hostel.camasHab1}" min="1" max="30" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 10px;width:100%">
+          </div>
+          <div class="form-group">
+            <label>Camas en Hab. 2 en adelante</label>
+            <input type="number" id="cfg-camas-resto" value="${cfg.hostel.camasHabResto}" min="1" max="30" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 10px;width:100%">
+          </div>
+        </div>
+        <div style="padding:0 20px 20px;display:flex;align-items:center;gap:12px;">
+          <button class="btn btn-blue btn-sm" onclick="saveConfigHostel()">Guardar estructura</button>
+          <span style="font-size:12px;color:var(--text3)">Total camas actual: <strong style="color:var(--text)">${getTotalCamas()}</strong></span>
+        </div>
+      </div>
+
+      <!-- TEMPORADAS Y PRECIOS -->
+      <div class="card">
+        <div class="card-header"><h3>💲 Temporadas y Precios</h3></div>
+        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;">
+          ${['alta','media','baja'].map(tipo => {
+            const t = cfg.temporadas[tipo];
+            const colors = { alta:'rgba(220,38,38,0.12)', media:'rgba(217,119,6,0.12)', baja:'rgba(5,150,105,0.12)' };
+            const textColors = { alta:'#f87171', media:'#fbbf24', baja:'#34d399' };
+            return `
+            <div style="background:${colors[tipo]};border:1px solid ${textColors[tipo]}33;border-radius:var(--radius2);padding:16px;">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:${textColors[tipo]};font-weight:600;margin-bottom:12px;">${tipo.toUpperCase()}</div>
+              <div class="form-group" style="margin-bottom:10px;">
+                <label style="font-size:11px;">Nombre</label>
+                <input type="text" id="cfg-t-${tipo}-nombre" value="${t.nombre}" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;width:100%;font-size:13px;">
+              </div>
+              <div class="form-group" style="margin-bottom:10px;">
+                <label style="font-size:11px;">Precio por noche</label>
+                <input type="number" id="cfg-t-${tipo}-precio" value="${t.precio}" min="0" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;width:100%;font-size:13px;">
+              </div>
+              <div class="form-group">
+                <label style="font-size:11px;">Moneda</label>
+                <select id="cfg-t-${tipo}-moneda" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;width:100%;font-size:13px;">
+                  <option ${t.moneda==='ARS'?'selected':''}>ARS</option>
+                  <option ${t.moneda==='USD'?'selected':''}>USD</option>
+                </select>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="padding:0 20px 20px;">
+          <button class="btn btn-blue btn-sm" onclick="saveConfigTemporadas()">Guardar precios</button>
+        </div>
+      </div>
+
+      <!-- HORARIOS -->
+      <div class="card">
+        <div class="card-header"><h3>🕐 Horarios Estándar</h3></div>
+        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
+          <div class="form-group">
+            <label>Check-in estándar</label>
+            <input type="time" id="cfg-checkin" value="${cfg.horarios.checkin}" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 10px;width:100%">
+          </div>
+          <div class="form-group">
+            <label>Check-out estándar</label>
+            <input type="time" id="cfg-checkout" value="${cfg.horarios.checkout}" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 10px;width:100%">
+          </div>
+          <div class="form-group">
+            <label>Late checkout (sugerido)</label>
+            <input type="time" id="cfg-late" value="${cfg.horarios.lateCheckout}" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 10px;width:100%">
+          </div>
+          <div class="form-group">
+            <label>Early check-in (sugerido)</label>
+            <input type="time" id="cfg-early" value="${cfg.horarios.earlyCheckin}" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 10px;width:100%">
+          </div>
+        </div>
+        <div style="padding:0 20px 20px;">
+          <button class="btn btn-blue btn-sm" onclick="saveConfigHorarios()">Guardar horarios</button>
+        </div>
+      </div>
+
+    </div>`;
+}
+
+async function saveConfigHostel() {
+  const stored = DB.get('config', {});
+  stored.hostel = {
+    nombre:        document.getElementById('cfg-nombre').value.trim() || CONFIG_DEFAULTS.hostel.nombre,
+    habitaciones:  Number(document.getElementById('cfg-habs').value) || CONFIG_DEFAULTS.hostel.habitaciones,
+    camasHab1:     Number(document.getElementById('cfg-camas-h1').value) || CONFIG_DEFAULTS.hostel.camasHab1,
+    camasHabResto: Number(document.getElementById('cfg-camas-resto').value) || CONFIG_DEFAULTS.hostel.camasHabResto,
+  };
+  await DB.set('config', stored);
+  renderConfig();
+  showNotif('Estructura del hostel guardada');
+}
+
+async function saveConfigTemporadas() {
+  const stored = DB.get('config', {});
+  stored.temporadas = {};
+  ['alta','media','baja'].forEach(tipo => {
+    stored.temporadas[tipo] = {
+      nombre: document.getElementById(`cfg-t-${tipo}-nombre`).value.trim() || CONFIG_DEFAULTS.temporadas[tipo].nombre,
+      precio: Number(document.getElementById(`cfg-t-${tipo}-precio`).value) || CONFIG_DEFAULTS.temporadas[tipo].precio,
+      moneda: document.getElementById(`cfg-t-${tipo}-moneda`).value,
+    };
+  });
+  await DB.set('config', stored);
+  renderConfig();
+  showNotif('Precios de temporadas guardados');
+}
+
+async function saveConfigHorarios() {
+  const stored = DB.get('config', {});
+  stored.horarios = {
+    checkin:      document.getElementById('cfg-checkin').value  || CONFIG_DEFAULTS.horarios.checkin,
+    checkout:     document.getElementById('cfg-checkout').value || CONFIG_DEFAULTS.horarios.checkout,
+    lateCheckout: document.getElementById('cfg-late').value     || CONFIG_DEFAULTS.horarios.lateCheckout,
+    earlyCheckin: document.getElementById('cfg-early').value    || CONFIG_DEFAULTS.horarios.earlyCheckin,
+  };
+  await DB.set('config', stored);
+  renderConfig();
+  showNotif('Horarios guardados');
 }
 
 // ===== BASE DE CONOCIMIENTO ALU =====
@@ -3452,7 +3632,7 @@ function buildSystemPrompt() {
   // Camas en mantenimiento
   const camasMantenimiento = Object.entries(bedStates)
     .filter(([,v]) => v?.estado === 'maintenance').map(([k]) => k);
-  const totalOperativas = 38 - camasMantenimiento.length - 12; // 12 = habs 5 y 6
+  const totalOperativas = getTotalCamas() - camasMantenimiento.length;
 
   // Función disponibilidad por fecha
   function libresEnFecha(fechaStr) {
@@ -3565,6 +3745,7 @@ async function loadApiKeyFromFirebase() {
 }
 let chatTyping = false;
 let chatOpen = false;
+let lastChatTime = 0;
 
 function toggleChatFloat() {
   chatOpen = !chatOpen;
@@ -3688,6 +3869,9 @@ async function sendChat() {
 
 async function sendMessage(text) {
   if (!text || chatTyping) return;
+  const _now = Date.now();
+  if (_now - lastChatTime < 800) return;
+  lastChatTime = _now;
   addUserMessage(text);
   chatHistory.push({ role: 'user', content: text });
 
@@ -3763,14 +3947,14 @@ async function sendMessage(text) {
 // ===================== MAPA FECHA WRAPPER =====================
 function mapaNavegar(dias) {
   const input = document.getElementById('mapaFecha');
-  const base = input.value || new Date().toISOString().split('T')[0];
+  const base = input.value || today();
   let fecha;
   if (dias === 0) {
-    fecha = new Date().toISOString().split('T')[0];
+    fecha = today();
   } else {
     const d = new Date(base + 'T12:00:00');
     d.setDate(d.getDate() + dias);
-    fecha = d.toISOString().split('T')[0];
+    fecha = dateToLocal(d);
   }
   input.value = fecha;
   const parts = fecha.split('-');
@@ -3780,7 +3964,7 @@ function mapaNavegar(dias) {
 }
 
 function renderMapaFecha(val) {
-  const f = val || new Date().toISOString().split('T')[0];
+  const f = val || today();
   const input = document.getElementById('mapaFecha');
   if (input) input.value = f;
   const label = document.getElementById('mapaFechaLabel');
@@ -3823,6 +4007,7 @@ Object.assign(window, {
   switchPricingTab, switchAcctTab, cerrarCaja,
   addTemporada, deleteTemporada, updateTemporada, updateHabPrecio, updatePlatPrecio,
   togglePerm, deleteRol, toggleUsuarioEstado,
+  renderConfig, saveConfigHostel, saveConfigTemporadas, saveConfigHorarios,
 });
 </script>
 </body>
