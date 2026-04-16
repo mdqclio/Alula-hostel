@@ -537,9 +537,6 @@ tr:hover td { background: rgba(59,130,246,0.04); color: var(--text); }
       <div class="nav-item" onclick="showSection('huespedes');closeSidebar()" id="nav-huespedes">
         <span class="icon">👤</span> Huéspedes
       </div>
-      <div class="nav-item" onclick="showSection('precios');closeSidebar()" id="nav-precios">
-        <span class="icon">💲</span> Precios
-      </div>
       <div class="nav-section admin-only" style="display:none;">Administración</div>
       <div class="nav-item admin-only" onclick="showSection('contabilidad');closeSidebar()" id="nav-contabilidad" style="display:none;">
         <span class="icon">📒</span> Contabilidad
@@ -1623,7 +1620,14 @@ function updateDate() {
 
 // ===================== HELPERS =====================
 const CONFIG_DEFAULTS = {
-  hostel: { nombre: 'Alula Hostel', habitaciones: 6, camasHab1: 8, camasHabResto: 6 },
+  hostel: { nombre: 'Alula Hostel', habitaciones: [
+    { id:'1', nombre:'Habitación 1', camas:8, activa:true,  nota:'' },
+    { id:'2', nombre:'Habitación 2', camas:6, activa:true,  nota:'' },
+    { id:'3', nombre:'Habitación 3', camas:6, activa:true,  nota:'' },
+    { id:'4', nombre:'Habitación 4', camas:6, activa:true,  nota:'' },
+    { id:'5', nombre:'Habitación 5', camas:0, activa:false, nota:'En obras' },
+    { id:'6', nombre:'Habitación 6', camas:0, activa:false, nota:'En obras' },
+  ]},
   horarios: { checkin: '14:00', checkout: '10:00', lateCheckout: '12:00', earlyCheckin: '11:00' },
   temporadas: {
     alta:  { nombre: 'Temporada Alta',  precio: 35000, moneda: 'ARS', periodos: [] },
@@ -1633,10 +1637,24 @@ const CONFIG_DEFAULTS = {
 };
 function getConfig() {
   const stored = DB.get('config', {});
+  const sh = stored.hostel || {};
   const st = stored.temporadas || {};
+  // Migrar formato viejo (habitaciones como número) al nuevo (array)
+  let habitaciones;
+  if (Array.isArray(sh.habitaciones)) {
+    habitaciones = sh.habitaciones;
+  } else if (typeof sh.habitaciones === 'number') {
+    const c1 = sh.camasHab1 || 8, cr = sh.camasHabResto || 6;
+    habitaciones = Array.from({length: sh.habitaciones}, (_, i) => ({
+      id: String(i+1), nombre: `Habitación ${i+1}`,
+      camas: i === 0 ? c1 : cr, activa: true, nota: ''
+    }));
+  } else {
+    habitaciones = CONFIG_DEFAULTS.hostel.habitaciones;
+  }
   return {
-    hostel:    { ...CONFIG_DEFAULTS.hostel,    ...(stored.hostel   || {}) },
-    horarios:  { ...CONFIG_DEFAULTS.horarios,  ...(stored.horarios || {}) },
+    hostel:   { nombre: sh.nombre || CONFIG_DEFAULTS.hostel.nombre, habitaciones },
+    horarios: { ...CONFIG_DEFAULTS.horarios, ...(stored.horarios || {}) },
     temporadas: {
       alta:  { ...CONFIG_DEFAULTS.temporadas.alta,  ...(st.alta  || {}), periodos: (st.alta  || {}).periodos || [] },
       media: { ...CONFIG_DEFAULTS.temporadas.media, ...(st.media || {}), periodos: (st.media || {}).periodos || [] },
@@ -1666,14 +1684,19 @@ function getTemporadaParaFecha(fechaStr) {
   return 'media';
 }
 function getTotalCamas() {
-  const c = getConfig().hostel;
-  return c.camasHab1 + (c.habitaciones - 1) * c.camasHabResto;
+  return getConfig().hostel.habitaciones.filter(h=>h.activa&&h.camas>0).reduce((s,h)=>s+h.camas,0);
 }
-function bedCount(hab) { const c = getConfig().hostel; return hab === '1' ? c.camasHab1 : c.camasHabResto; }
+function bedCount(hab) {
+  const h = getConfig().hostel.habitaciones.find(x=>x.id===hab);
+  return h ? h.camas : 0;
+}
 function habFirstBed(hab) {
-  const c = getConfig().hostel;
-  if(hab === '1') return 1;
-  return c.camasHab1 + (Number(hab) - 2) * c.camasHabResto + 1;
+  let first = 1;
+  for (const h of getConfig().hostel.habitaciones) {
+    if (h.id === hab) break;
+    first += h.camas;
+  }
+  return first;
 }
 function habBeds(hab) {
   const n = bedCount(hab);
@@ -1688,7 +1711,9 @@ function camaLabel(camaId) {
 }
 function allBeds() {
   let beds = [];
-  for(let h=1;h<=getConfig().hostel.habitaciones;h++) beds = beds.concat(habBeds(String(h)));
+  for (const h of getConfig().hostel.habitaciones) {
+    if (h.activa && h.camas > 0) beds = beds.concat(habBeds(h.id));
+  }
   return beds;
 }
 function getHuespedNombre(id) {
@@ -1824,8 +1849,9 @@ function renderMapa(fechaVer) {
 
   grid.innerHTML = '';
 
-  for(let h=1;h<=getConfig().hostel.habitaciones;h++) {
-    const hs = String(h);
+  for(const habCfg of getConfig().hostel.habitaciones) {
+    if (!habCfg.activa || habCfg.camas === 0) continue;
+    const hs = habCfg.id;
     const beds = habBeds(hs);
 
     // Obtener IDs de camas de esta habitación que tienen reserva activa en la fecha
@@ -1847,7 +1873,7 @@ function renderMapa(fechaVer) {
 
     card.innerHTML = `
       <div class="room-header">
-        <div class="room-title">Habitación ${h} <span style="font-size:11px;color:var(--text3)">${beds.length} camas</span></div>
+        <div class="room-title">${habCfg.nombre||'Hab. '+hs} <span style="font-size:11px;color:var(--text3)">${beds.length} camas</span></div>
         <span class="room-badge ${badgeClass}">${badgeLabel}</span>
       </div>
       <div class="beds-grid">
@@ -3457,20 +3483,54 @@ function renderConfig() {
 
       <!-- HOSTEL -->
       <div class="card">
-        <div class="card-header"><h3>🏨 Estructura del Hostel</h3></div>
-        <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;">
-          <div class="form-group"><label>Nombre del hostel</label>
-            <input type="text" id="cfg-nombre" value="${cfg.hostel.nombre}" style="${inp}"></div>
-          <div class="form-group"><label>Número de habitaciones</label>
-            <input type="number" id="cfg-habs" value="${cfg.hostel.habitaciones}" min="1" max="20" style="${inp}"></div>
-          <div class="form-group"><label>Camas en Habitación 1</label>
-            <input type="number" id="cfg-camas-h1" value="${cfg.hostel.camasHab1}" min="1" max="30" style="${inp}"></div>
-          <div class="form-group"><label>Camas en Hab. 2 en adelante</label>
-            <input type="number" id="cfg-camas-resto" value="${cfg.hostel.camasHabResto}" min="1" max="30" style="${inp}"></div>
+        <div class="card-header">
+          <h3>🏨 Estructura del Hostel</h3>
+          <span style="font-size:12px;color:var(--text3)">Total activas: <strong style="color:var(--text)">${getTotalCamas()} camas</strong></span>
         </div>
-        <div style="padding:0 20px 20px;display:flex;align-items:center;gap:12px;">
+        <div style="padding:16px 20px 8px;">
+          <div class="form-group" style="max-width:280px;margin-bottom:16px;">
+            <label>Nombre del hostel</label>
+            <input type="text" id="cfg-nombre" value="${cfg.hostel.nombre}" style="${inp}">
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border);">
+                <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3);font-weight:500;">HABITACIÓN</th>
+                <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3);font-weight:500;">NOMBRE</th>
+                <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--text3);font-weight:500;">CAMAS</th>
+                <th style="text-align:center;padding:6px 8px;font-size:11px;color:var(--text3);font-weight:500;">ACTIVA</th>
+                <th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--text3);font-weight:500;">NOTA</th>
+                <th style="padding:6px 4px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              ${cfg.hostel.habitaciones.map((h,i) => `
+              <tr style="border-bottom:1px solid var(--border);${!h.activa?'opacity:0.5':''}">
+                <td style="padding:8px;color:var(--text3);font-size:12px;">Hab. ${h.id}</td>
+                <td style="padding:8px;">
+                  <input type="text" value="${h.nombre}" id="cfg-hab-nombre-${i}" style="${inp}padding:5px 8px;">
+                </td>
+                <td style="padding:8px;text-align:center;">
+                  <input type="number" value="${h.camas}" id="cfg-hab-camas-${i}" min="0" max="30"
+                    style="${inp}padding:5px 8px;width:70px;text-align:center;">
+                </td>
+                <td style="padding:8px;text-align:center;">
+                  <input type="checkbox" id="cfg-hab-activa-${i}" ${h.activa?'checked':''} style="width:16px;height:16px;cursor:pointer;">
+                </td>
+                <td style="padding:8px;">
+                  <input type="text" value="${h.nota||''}" id="cfg-hab-nota-${i}" placeholder="En obras, cerrada..."
+                    style="${inp}padding:5px 8px;">
+                </td>
+                <td style="padding:8px;">
+                  <button class="btn btn-red btn-sm" style="padding:3px 8px;font-size:11px;" onclick="removeHabitacion(${i})">✕</button>
+                </td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:12px 20px 20px;display:flex;gap:10px;align-items:center;">
           <button class="btn btn-blue btn-sm" onclick="saveConfigHostel()">Guardar estructura</button>
-          <span style="font-size:12px;color:var(--text3)">Total camas: <strong style="color:var(--text)">${getTotalCamas()}</strong></span>
+          <button class="btn btn-ghost btn-sm" onclick="addHabitacion()">+ Agregar habitación</button>
         </div>
       </div>
 
@@ -3625,16 +3685,41 @@ async function deletePeriodo(tipo, pid) {
 }
 
 async function saveConfigHostel() {
+  const cfg = getConfig();
+  const nombre = document.getElementById('cfg-nombre').value.trim() || CONFIG_DEFAULTS.hostel.nombre;
+  const habitaciones = cfg.hostel.habitaciones.map((h, i) => ({
+    id:     h.id,
+    nombre: document.getElementById(`cfg-hab-nombre-${i}`)?.value.trim() || h.nombre,
+    camas:  Number(document.getElementById(`cfg-hab-camas-${i}`)?.value) || 0,
+    activa: document.getElementById(`cfg-hab-activa-${i}`)?.checked ?? h.activa,
+    nota:   document.getElementById(`cfg-hab-nota-${i}`)?.value.trim() || '',
+  }));
   const stored = DB.get('config', {});
-  stored.hostel = {
-    nombre:        document.getElementById('cfg-nombre').value.trim() || CONFIG_DEFAULTS.hostel.nombre,
-    habitaciones:  Number(document.getElementById('cfg-habs').value) || CONFIG_DEFAULTS.hostel.habitaciones,
-    camasHab1:     Number(document.getElementById('cfg-camas-h1').value) || CONFIG_DEFAULTS.hostel.camasHab1,
-    camasHabResto: Number(document.getElementById('cfg-camas-resto').value) || CONFIG_DEFAULTS.hostel.camasHabResto,
-  };
+  stored.hostel = { nombre, habitaciones };
   await DB.set('config', stored);
   renderConfig();
   showNotif('Estructura del hostel guardada');
+}
+
+async function addHabitacion() {
+  const stored = DB.get('config', {});
+  const cfg = getConfig();
+  const newId = String(Math.max(0, ...cfg.hostel.habitaciones.map(h => Number(h.id) || 0)) + 1);
+  const habitaciones = [...cfg.hostel.habitaciones, { id: newId, nombre: `Habitación ${newId}`, camas: 6, activa: true, nota: '' }];
+  stored.hostel = { nombre: cfg.hostel.nombre, habitaciones };
+  await DB.set('config', stored);
+  renderConfig();
+  showNotif('Habitación agregada');
+}
+
+async function removeHabitacion(i) {
+  const stored = DB.get('config', {});
+  const cfg = getConfig();
+  const habitaciones = cfg.hostel.habitaciones.filter((_, idx) => idx !== i);
+  stored.hostel = { nombre: cfg.hostel.nombre, habitaciones };
+  await DB.set('config', stored);
+  renderConfig();
+  showNotif('Habitación eliminada');
 }
 
 async function saveConfigTemporada(tipo) {
@@ -4139,7 +4224,7 @@ Object.assign(window, {
   switchPricingTab, switchAcctTab, cerrarCaja,
   addTemporada, deleteTemporada, updateTemporada, updateHabPrecio, updatePlatPrecio,
   togglePerm, deleteRol, toggleUsuarioEstado,
-  renderConfig, saveConfigHostel, saveConfigTemporada, saveConfigHorarios,
+  renderConfig, saveConfigHostel, addHabitacion, removeHabitacion, saveConfigTemporada, saveConfigHorarios,
   toggleAddPeriodo, togglePeriodoTipo, addPeriodo, deletePeriodo,
 });
 </script>
