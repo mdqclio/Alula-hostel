@@ -3435,8 +3435,10 @@ async function saveChatCorrect() {
 
 // ===================== CONFIGURACIÓN =====================
 function _periodoLabel(p) {
-  if (p.tipo === 'anual') return `Cada año: ${p.desde} → ${p.hasta}`;
-  return `${p.desde} → ${p.hasta}`;
+  const rango = p.tipo === 'anual'
+    ? `Cada año: ${p.desde} al ${p.hasta}`
+    : `${p.desde} al ${p.hasta}`;
+  return p.nombre ? `<strong>${p.nombre}</strong> — ${rango}` : rango;
 }
 
 function renderConfig() {
@@ -3512,19 +3514,23 @@ function renderConfig() {
               <!-- Formulario agregar período -->
               <div id="add-periodo-form-${tipo}" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-top:8px;">
                 <div style="margin-bottom:8px;">
-                  <label style="font-size:11px;color:var(--text3);">Tipo de período</label>
+                  <label style="font-size:11px;color:var(--text3);">Nombre del período</label>
+                  <input type="text" id="cfg-periodo-nombre-${tipo}" placeholder="Ej: Carnaval, Semana Santa, Finde largo oct..." style="${inp}margin-top:4px;">
+                </div>
+                <div style="margin-bottom:8px;">
+                  <label style="font-size:11px;color:var(--text3);">Tipo</label>
                   <select id="cfg-periodo-tipo-${tipo}" onchange="togglePeriodoTipo('${tipo}')" style="${inp}margin-top:4px;">
-                    <option value="anual">Anual (se repite cada año)</option>
-                    <option value="especifico">Específico (fecha exacta)</option>
+                    <option value="anual">Anual (se repite cada año, ej: temporada de verano)</option>
+                    <option value="especifico">Específico (fecha exacta, ej: finde largo 2025)</option>
                   </select>
                 </div>
                 <div id="cfg-periodo-anual-${tipo}">
-                  <p style="font-size:11px;color:var(--text3);margin-bottom:6px;">Formato: MM-DD (ej: 12-20 para 20 de diciembre)</p>
+                  <p style="font-size:11px;color:var(--text3);margin-bottom:6px;">Seleccioná día y mes — el año se ignora, aplica todos los años.</p>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     <div><label style="font-size:11px;color:var(--text3);">Desde</label>
-                      <input type="text" id="cfg-periodo-desde-${tipo}" placeholder="12-20" maxlength="5" style="${inp}margin-top:4px;"></div>
+                      <input type="date" id="cfg-periodo-desde-${tipo}" style="${inp}margin-top:4px;"></div>
                     <div><label style="font-size:11px;color:var(--text3);">Hasta</label>
-                      <input type="text" id="cfg-periodo-hasta-${tipo}" placeholder="03-14" maxlength="5" style="${inp}margin-top:4px;"></div>
+                      <input type="date" id="cfg-periodo-hasta-${tipo}" style="${inp}margin-top:4px;"></div>
                   </div>
                 </div>
                 <div id="cfg-periodo-especifico-${tipo}" style="display:none;">
@@ -3579,29 +3585,30 @@ function togglePeriodoTipo(tipo) {
 }
 
 async function addPeriodo(tipo) {
+  const nombre = document.getElementById(`cfg-periodo-nombre-${tipo}`).value.trim();
+  if (!nombre) { showNotif('Poné un nombre al período (ej: Carnaval, Semana Santa)', 'error'); return; }
   const tipoP = document.getElementById(`cfg-periodo-tipo-${tipo}`).value;
   let desde, hasta;
   if (tipoP === 'anual') {
-    desde = document.getElementById(`cfg-periodo-desde-${tipo}`).value.trim();
-    hasta = document.getElementById(`cfg-periodo-hasta-${tipo}`).value.trim();
-    // Validar formato MM-DD
-    if (!/^\d{2}-\d{2}$/.test(desde) || !/^\d{2}-\d{2}$/.test(hasta)) {
-      showNotif('Formato inválido. Usá MM-DD (ej: 12-20)', 'error'); return;
-    }
+    const dRaw = document.getElementById(`cfg-periodo-desde-${tipo}`).value;
+    const hRaw = document.getElementById(`cfg-periodo-hasta-${tipo}`).value;
+    if (!dRaw || !hRaw) { showNotif('Seleccioná ambas fechas', 'error'); return; }
+    desde = dRaw.slice(5); // YYYY-MM-DD → MM-DD
+    hasta = hRaw.slice(5);
   } else {
     desde = document.getElementById(`cfg-periodo-desde-esp-${tipo}`).value;
     hasta = document.getElementById(`cfg-periodo-hasta-esp-${tipo}`).value;
     if (!desde || !hasta) { showNotif('Seleccioná ambas fechas', 'error'); return; }
-    if (desde > hasta) { showNotif('La fecha de inicio debe ser anterior al fin', 'error'); return; }
+    if (desde > hasta) { showNotif('La fecha inicio debe ser anterior al fin', 'error'); return; }
   }
   const stored = DB.get('config', {});
   if (!stored.temporadas) stored.temporadas = {};
   if (!stored.temporadas[tipo]) stored.temporadas[tipo] = { ...getConfig().temporadas[tipo] };
   if (!stored.temporadas[tipo].periodos) stored.temporadas[tipo].periodos = [];
-  stored.temporadas[tipo].periodos.push({ id: 'p' + Date.now(), tipo: tipoP, desde, hasta });
+  stored.temporadas[tipo].periodos.push({ id: 'p' + Date.now(), tipo: tipoP, nombre, desde, hasta });
   await DB.set('config', stored);
   renderConfig();
-  showNotif('Período agregado');
+  showNotif(`Período "${nombre}" agregado`);
 }
 
 async function deletePeriodo(tipo, pid) {
