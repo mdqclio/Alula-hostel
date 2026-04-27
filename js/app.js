@@ -17,15 +17,18 @@ import {
 } from './reservas.js';
 import { renderCheckin } from './checkin.js';
 import {
-  renderHuespedes, showGuestDetail, saveHuesped, previewDoc,
+  renderHuespedes, showGuestDetail, saveHuesped, previewDoc, runOCR,
   openEditHuesped, saveEditHuesped, confirmDelete, deleteHuesped,
   renderScoreStars, setScore, getScoreBadge,
   showPublicFormLink, copyPublicLink, openPublicFormPreview,
   checkPublicMode, showPublicRegistrationForm, previewPubDoc, submitPublicRegistration
 } from './huespedes.js';
 import { renderPrecios, switchPricingTab, updateTemporada, updateHabPrecio, updatePlatPrecio, deleteTemporada, addTemporada } from './precios.js';
-import { renderAcct, switchAcctTab } from './contabilidad.js';
-import { renderCaja, saveMovimiento, cerrarCaja } from './caja.js';
+import { renderAcct, switchAcctTab, aplicarFiltroReportes, exportarReporteCSV } from './contabilidad.js';
+import {
+  renderCaja, saveMovimiento, cerrarCaja,
+  openMovimientoModal, openTransferenciaModal, saveTransferencia, renderSaldos
+} from './caja.js';
 import { renderListaNegra, copyListaNegraLink, checkListaNegraMode } from './listanegra.js';
 import {
   renderRoles, togglePerm, deleteRol, saveRol,
@@ -35,7 +38,13 @@ import { renderKnowledge, saveKnowledgeEntry, deleteKnowledgeEntry, editKnowledg
 import {
   renderConfig, saveConfigHostel, addHabitacion, removeHabitacion,
   saveConfigTemporada, saveConfigHorarios,
-  toggleAddPeriodo, togglePeriodoTipo, addPeriodo, deletePeriodo
+  toggleAddPeriodo, togglePeriodoTipo, addPeriodo, deletePeriodo,
+  addCategoriaContable, deleteCategoriaContable,
+  openCuentaForm, saveCuentaCfg, deleteCuentaCfg,
+  addMetodoPago, deleteMetodoPago,
+  addPlataforma, deletePlataforma,
+  addMoneda, deleteMoneda,
+  addQuickReply, deleteQuickReply
 } from './config-ui.js';
 import {
   toggleChatFloat, initChatbot, clearChat, sendChat, sendQuickReply,
@@ -75,7 +84,7 @@ Object.assign(window, {
   renderCheckin,
 
   // Huéspedes
-  renderHuespedes, showGuestDetail, saveHuesped, previewDoc,
+  renderHuespedes, showGuestDetail, saveHuesped, previewDoc, runOCR,
   openEditHuesped, saveEditHuesped, confirmDelete, deleteHuesped,
   renderScoreStars, setScore, getScoreBadge,
   showPublicFormLink, copyPublicLink, openPublicFormPreview,
@@ -86,10 +95,11 @@ Object.assign(window, {
   updateTemporada, updateHabPrecio, updatePlatPrecio, deleteTemporada, addTemporada,
 
   // Contabilidad
-  renderAcct, switchAcctTab,
+  renderAcct, switchAcctTab, aplicarFiltroReportes, exportarReporteCSV,
 
-  // Caja
+  // Caja / Saldos
   renderCaja, saveMovimiento, cerrarCaja,
+  openMovimientoModal, openTransferenciaModal, saveTransferencia, renderSaldos,
 
   // Lista negra
   renderListaNegra, copyListaNegraLink,
@@ -106,6 +116,12 @@ Object.assign(window, {
   renderConfig, saveConfigHostel, addHabitacion, removeHabitacion,
   saveConfigTemporada, saveConfigHorarios,
   toggleAddPeriodo, togglePeriodoTipo, addPeriodo, deletePeriodo,
+  addCategoriaContable, deleteCategoriaContable,
+  openCuentaForm, saveCuentaCfg, deleteCuentaCfg,
+  addMetodoPago, deleteMetodoPago,
+  addPlataforma, deletePlataforma,
+  addMoneda, deleteMoneda,
+  addQuickReply, deleteQuickReply,
 
   // Chatbot
   toggleChatFloat, initChatbot, clearChat, sendChat, sendQuickReply,

@@ -1,7 +1,7 @@
 // ===================== CHATBOT ALULA =====================
 import { DB } from './firebase-config.js';
 import { today, showNotif } from './helpers.js';
-import { getConfig, getTotalCamas } from './config.js';
+import { getConfig, getTotalCamas, getChatQuickReplies } from './config.js';
 import { renderKnowledge } from './knowledge.js';
 
 // ===== CORRECCIÓN CHATBOT =====
@@ -35,14 +35,6 @@ export async function saveChatCorrect() {
 }
 
 // ===== CHATBOT =====
-export const QUICK_REPLIES = [
-  { label: "💰 Precios", msg: "¿Cuáles son los precios?" },
-  { label: "🏠 Habitaciones", msg: "¿Qué tipo de habitaciones tienen?" },
-  { label: "📍 Ubicación", msg: "¿Dónde están ubicados?" },
-  { label: "⏰ Horarios", msg: "¿Cuáles son los horarios de check-in y check-out?" },
-  { label: "🏊 Servicios", msg: "¿Qué servicios ofrecen?" },
-  { label: "📅 Reservar", msg: "Quiero hacer una reserva" },
-];
 
 export let chatHistory = [];
 export let chatApiKey = localStorage.getItem('alula_groq_key') || '';
@@ -148,7 +140,7 @@ export function copyMsg(id) {
 export function showQuickReplies() {
   const c = document.getElementById('chatQuickBtns');
   if (!c) return;
-  c.innerHTML = QUICK_REPLIES.map(r =>
+  c.innerHTML = getChatQuickReplies().map(r =>
     `<button class="chat-quick-btn" onclick="sendQuickReply('${r.msg.replace(/'/g, "&#39;")}')">${r.label}</button>`
   ).join('');
 }

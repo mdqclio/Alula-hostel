@@ -15,7 +15,8 @@ export const sectionTitles = {
   usuarios: 'Usuarios del Sistema',
   roles: 'Roles y Permisos',
   knowledge: 'Base de Conocimiento Alu',
-  config: 'Configuración del Sistema'
+  config: 'Configuración del Sistema',
+  saldos: 'Saldos por Cuenta'
 };
 
 export async function showSection(s) {
@@ -82,6 +83,10 @@ export async function showSection(s) {
   if (s === 'config') {
     const { renderConfig } = await import('./config-ui.js');
     renderConfig();
+  }
+  if (s === 'saldos') {
+    const { renderSaldos } = await import('./caja.js');
+    loadAllData().then(() => renderSaldos());
   }
 }
 

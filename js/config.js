@@ -18,14 +18,47 @@ export const CONFIG_DEFAULTS = {
     alta:  { nombre: 'Temporada Alta',  precio: 35000, moneda: 'ARS', periodos: [] },
     media: { nombre: 'Temporada Media', precio: 27000, moneda: 'ARS', periodos: [] },
     baja:  { nombre: 'Temporada Baja',  precio: 22000, moneda: 'ARS', periodos: [] },
-  }
+  },
+  categorias: {
+    ingresos: ['Reservas', 'Late checkout', 'Otros'],
+    egresos:  ['Sueldos', 'Servicios', 'Limpieza', 'Mantenimiento', 'Otros'],
+  },
+  cuentas: [
+    { id: 'c1', nombre: 'Caja efectivo',   tipo: 'efectivo', moneda: 'ARS', responsable: '', saldoInicial: 0, fechaSaldoInicial: '', activa: true },
+    { id: 'c2', nombre: 'Banco principal', tipo: 'banco',    moneda: 'ARS', responsable: '', saldoInicial: 0, fechaSaldoInicial: '', activa: true },
+    { id: 'c3', nombre: 'Wise',            tipo: 'digital',  moneda: 'USD', responsable: '', saldoInicial: 0, fechaSaldoInicial: '', activa: true },
+    { id: 'c4', nombre: 'Mercado Pago',    tipo: 'digital',  moneda: 'ARS', responsable: '', saldoInicial: 0, fechaSaldoInicial: '', activa: true },
+  ],
+  metodosPago: [
+    { id: 'efectivo',      nombre: 'Efectivo' },
+    { id: 'transferencia', nombre: 'Transferencia' },
+    { id: 'mercadopago',   nombre: 'Mercado Pago' },
+    { id: 'tarjeta',       nombre: 'Tarjeta' },
+  ],
+  plataformas: [
+    { id: 'directo', nombre: 'Directo' },
+    { id: 'booking', nombre: 'Booking.com' },
+    { id: 'airbnb',  nombre: 'Airbnb' },
+    { id: 'otro',    nombre: 'Otro' },
+  ],
+  monedas: [
+    { code: 'ARS', symbol: '$',   nombre: 'Peso argentino' },
+    { code: 'USD', symbol: 'USD', nombre: 'Dólar' },
+  ],
+  chatQuickReplies: [
+    { label: '💰 Precios',      msg: '¿Cuáles son los precios?' },
+    { label: '🏠 Habitaciones', msg: '¿Qué tipo de habitaciones tienen?' },
+    { label: '📍 Ubicación',    msg: '¿Dónde están ubicados?' },
+    { label: '⏰ Horarios',     msg: '¿Cuáles son los horarios de check-in y check-out?' },
+    { label: '🏊 Servicios',    msg: '¿Qué servicios ofrecen?' },
+    { label: '📅 Reservar',     msg: 'Quiero hacer una reserva' },
+  ],
 };
 
 export function getConfig() {
   const stored = DB.get('config', {});
   const sh = stored.hostel || {};
   const st = stored.temporadas || {};
-  // Migrar formato viejo (habitaciones como número) al nuevo (array)
   let habitaciones;
   if (Array.isArray(sh.habitaciones)) {
     habitaciones = sh.habitaciones;
@@ -49,15 +82,57 @@ export function getConfig() {
   };
 }
 
-// Determina qué temporada aplica a una fecha (YYYY-MM-DD). Prioridad: alta > media > baja.
+export function getCategorias() {
+  const stored = DB.get('config', {}).categorias || {};
+  return {
+    ingresos: stored.ingresos || [...CONFIG_DEFAULTS.categorias.ingresos],
+    egresos:  stored.egresos  || [...CONFIG_DEFAULTS.categorias.egresos],
+  };
+}
+
+export function getCuentas() {
+  return DB.get('config', {}).cuentas || CONFIG_DEFAULTS.cuentas;
+}
+
+export function getMetodosPago() {
+  return DB.get('config', {}).metodosPago || CONFIG_DEFAULTS.metodosPago;
+}
+
+export function getPlataformas() {
+  return DB.get('config', {}).plataformas || CONFIG_DEFAULTS.plataformas;
+}
+
+export function getMonedas() {
+  return DB.get('config', {}).monedas || CONFIG_DEFAULTS.monedas;
+}
+
+export function getChatQuickReplies() {
+  return DB.get('config', {}).chatQuickReplies || CONFIG_DEFAULTS.chatQuickReplies;
+}
+
+/** <option> tags para select de métodos de pago */
+export function metodosOptions(currentVal = 'efectivo') {
+  return getMetodosPago().map(m =>
+    `<option value="${m.id}" ${m.id === currentVal ? 'selected' : ''}>${m.nombre}</option>`
+  ).join('');
+}
+
+/** <option> tags para select de cuentas activas (filtra por moneda opcional) */
+export function cuentasOptions(currentVal = '', moneda = null) {
+  return '<option value="">Sin asignar</option>' + getCuentas()
+    .filter(c => c.activa && (!moneda || c.moneda === moneda))
+    .map(c => `<option value="${c.id}" ${c.id === currentVal ? 'selected' : ''}>${c.nombre} (${c.moneda})</option>`)
+    .join('');
+}
+
+// ===== Funciones existentes (sin cambios) =====
+
 export function getTemporadaParaFecha(fechaStr) {
   const cfg = getConfig();
   const d = new Date(fechaStr + 'T12:00:00');
   const mmdd = String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   function matches(periodo) {
-    if (periodo.tipo === 'especifico') {
-      return fechaStr >= periodo.desde && fechaStr <= periodo.hasta;
-    }
+    if (periodo.tipo === 'especifico') return fechaStr >= periodo.desde && fechaStr <= periodo.hasta;
     if (periodo.tipo === 'anual') {
       const { desde, hasta } = periodo;
       return desde <= hasta ? (mmdd >= desde && mmdd <= hasta) : (mmdd >= desde || mmdd <= hasta);
@@ -95,7 +170,6 @@ export function habBeds(hab) {
 }
 
 export function camaLabel(camaId) {
-  // camaId = "hab-idx", ej "2-3" → cama 11 (Hab2 empieza en 9, índice 3 → 9+2=11)
   const parts = camaId.split('-');
   const hab = parts[0], idx = Number(parts[1]);
   return String(habFirstBed(hab) + idx - 1);

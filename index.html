@@ -84,6 +84,9 @@
       <div class="nav-item admin-only" onclick="showSection('caja');closeSidebar()" id="nav-caja" style="display:none;">
         <span class="icon">💰</span> Caja Diaria
       </div>
+      <div class="nav-item admin-only" onclick="showSection('saldos');closeSidebar()" id="nav-saldos" style="display:none;">
+        <span class="icon">🏦</span> Saldos
+      </div>
       <div class="nav-item admin-only" onclick="showSection('listanegra');closeSidebar()" id="nav-listanegra" style="display:none;">
         <span class="icon">🚫</span> Lista Negra
       </div>
@@ -291,8 +294,14 @@
         <div class="tab" onclick="switchAcctTab('sueldos',this)">Sueldos</div>
         <div class="tab" onclick="switchAcctTab('servicios',this)">Servicios</div>
         <div class="tab" onclick="switchAcctTab('resumen',this)">Resumen Mes</div>
+        <div class="tab" onclick="switchAcctTab('reportes',this)">📥 Reportes</div>
       </div>
       <div id="acctContent"></div>
+    </div>
+
+    <!-- SALDOS POR CUENTA -->
+    <div id="section-saldos" class="section">
+      <div id="saldosContent"></div>
     </div>
 
     <!-- CAJA DIARIA -->
@@ -307,7 +316,10 @@
         <div class="card">
           <div class="card-header">
             <h3>Movimientos de hoy</h3>
-            <button class="btn btn-blue btn-sm" onclick="openModal('modalMovimiento')">+ Movimiento</button>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="openTransferenciaModal()">🔄 Transferencia</button>
+              <button class="btn btn-blue btn-sm" onclick="openMovimientoModal()">+ Movimiento</button>
+            </div>
           </div>
           <table>
             <thead><tr><th>Hora</th><th>Concepto</th><th>Tipo</th><th>Monto</th><th>Método</th></tr></thead>
@@ -526,6 +538,21 @@
       <div class="form-group"><label>Teléfono</label><input type="text" id="eh-tel"></div>
       <div class="form-group"><label>Email</label><input type="email" id="eh-email"></div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label>Ciudad</label><input type="text" id="eh-ciudad"></div>
+      <div class="form-group"><label>Provincia / Estado</label><input type="text" id="eh-provincia"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="eh-fechaNacimiento"></div>
+      <div class="form-group"><label>Género</label>
+        <select id="eh-genero">
+          <option value="">No especifica</option>
+          <option value="masculino">Masculino</option>
+          <option value="femenino">Femenino</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
     <div class="form-group" style="margin-top:12px;">
       <label>Puntuación de comportamiento (1-10)</label>
       <div id="eh-stars" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"></div>
@@ -719,6 +746,21 @@
       <div class="form-group"><label>Teléfono</label><input type="text" id="h-tel" placeholder="+54 9 223..."></div>
       <div class="form-group"><label>Email</label><input type="email" id="h-email" placeholder="email@ejemplo.com"></div>
     </div>
+    <div class="form-row">
+      <div class="form-group"><label>Ciudad</label><input type="text" id="h-ciudad" placeholder="Mar del Plata"></div>
+      <div class="form-group"><label>Provincia / Estado</label><input type="text" id="h-provincia" placeholder="Buenos Aires"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="h-fechaNacimiento"></div>
+      <div class="form-group"><label>Género</label>
+        <select id="h-genero">
+          <option value="">No especifica</option>
+          <option value="masculino">Masculino</option>
+          <option value="femenino">Femenino</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+    </div>
     <div class="form-group">
       <label>Foto del Documento</label>
       <div class="upload-zone" onclick="document.getElementById('h-foto').click()" id="uploadZone">
@@ -726,6 +768,7 @@
         <input type="file" id="h-foto" accept="image/*" style="display:none" onchange="previewDoc(this)">
         <img id="docPreview" style="display:none;">
       </div>
+      <button class="btn btn-amber btn-sm" id="btn-ocr-new" style="display:none;margin-top:8px;" onclick="runOCR('new')">🪄 Auto-completar con IA</button>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalHuesped')">Cancelar</button>
@@ -746,14 +789,15 @@
         </select>
       </div>
       <div class="form-group"><label>Categoría</label>
-        <select id="mov-cat">
-          <option value="reserva">Reserva / Check-in</option>
-          <option value="servicio">Servicio (luz, gas, etc.)</option>
-          <option value="sueldo">Sueldo</option>
-          <option value="limpieza">Insumo / Limpieza</option>
-          <option value="mantenimiento">Mantenimiento</option>
-          <option value="otro">Otro</option>
-        </select>
+        <select id="mov-cat"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Cuenta *</label>
+        <select id="mov-cuenta"></select>
+      </div>
+      <div class="form-group"><label>Método</label>
+        <select id="mov-metodo"></select>
       </div>
     </div>
     <div class="form-row">
@@ -762,15 +806,12 @@
       </div>
       <div class="form-group"><label>Monto *</label><input type="number" id="mov-monto" placeholder="0"></div>
     </div>
+    <div class="form-row" id="mov-tc-row" style="display:none;">
+      <div class="form-group"><label>Tipo de cambio ARS/USD</label><input type="number" id="mov-tcARS" placeholder="Ej: 1430"></div>
+      <div class="form-group"><label>Equivalente ARS</label><input type="number" id="mov-equivalenteARS" placeholder="Se calcula automático" readonly style="background:var(--surface3);color:var(--accent2);"></div>
+    </div>
+    <div id="mov-cuenta-warn" style="display:none;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:8px;"></div>
     <div class="form-row">
-      <div class="form-group"><label>Método</label>
-        <select id="mov-metodo">
-          <option value="efectivo">Efectivo</option>
-          <option value="transferencia">Transferencia</option>
-          <option value="mercadopago">Mercado Pago</option>
-          <option value="tarjeta">Tarjeta</option>
-        </select>
-      </div>
       <div class="form-group"><label>Fecha</label><input type="date" id="mov-fecha"></div>
     </div>
     <div class="form-group"><label>Concepto *</label><input type="text" id="mov-concepto" placeholder="Descripción del movimiento"></div>
@@ -931,6 +972,77 @@
         onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"
         oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
       <button class="chat-send-btn" id="chatSendBtn" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL TRANSFERENCIA ENTRE CUENTAS -->
+<div class="modal-overlay" id="modalTransferencia">
+  <div class="modal">
+    <h2>🔄 Transferencia entre cuentas</h2>
+    <div class="form-row">
+      <div class="form-group"><label>Cuenta origen *</label>
+        <select id="trf-origen"></select>
+      </div>
+      <div class="form-group"><label>Cuenta destino *</label>
+        <select id="trf-destino"></select>
+      </div>
+    </div>
+    <div id="trf-moneda-warn" style="display:none;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:8px;">
+      ⚠️ Las cuentas tienen monedas distintas. Ingresá el tipo de cambio.
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Monto *</label><input type="number" id="trf-monto" placeholder="0"></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="trf-fecha"></div>
+    </div>
+    <div class="form-row" id="trf-tc-row" style="display:none;">
+      <div class="form-group"><label>Tipo de cambio ARS/USD</label><input type="number" id="trf-tcARS" placeholder="Ej: 1430"></div>
+    </div>
+    <div class="form-group"><label>Concepto</label><input type="text" id="trf-concepto" placeholder="Ej: Paso efectivo a banco"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalTransferencia')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveTransferencia()">Confirmar transferencia</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CUENTA (Config) -->
+<div class="modal-overlay" id="modalCuenta">
+  <div class="modal">
+    <h2 id="modalCuentaTitle">Nueva Cuenta</h2>
+    <input type="hidden" id="cuenta-id">
+    <div class="form-row">
+      <div class="form-group"><label>Nombre *</label><input type="text" id="cuenta-nombre" placeholder="Ej: Caja efectivo"></div>
+      <div class="form-group"><label>Tipo</label>
+        <select id="cuenta-tipo">
+          <option value="efectivo">Efectivo</option>
+          <option value="banco">Banco</option>
+          <option value="digital">Billetera digital</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Moneda</label>
+        <select id="cuenta-moneda">
+          <option value="ARS">ARS</option>
+          <option value="USD">USD</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Responsable</label><input type="text" id="cuenta-responsable" placeholder="Nombre (opcional)"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Saldo inicial</label><input type="number" id="cuenta-saldoInicial" placeholder="0"></div>
+      <div class="form-group"><label>Fecha saldo inicial</label><input type="date" id="cuenta-fechaSaldoInicial"></div>
+    </div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="cuenta-activa" checked style="width:auto;">
+        Cuenta activa
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalCuenta')">Cancelar</button>
+      <button class="btn btn-blue" onclick="saveCuentaCfg()">Guardar</button>
     </div>
   </div>
 </div>
