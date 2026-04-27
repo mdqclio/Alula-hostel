@@ -1,7 +1,7 @@
 // ===================== CHATBOT ALULA =====================
 import { DB } from './firebase-config.js';
 import { today, showNotif } from './helpers.js';
-import { getTotalCamas } from './config.js';
+import { getConfig, getTotalCamas } from './config.js';
 import { renderKnowledge } from './knowledge.js';
 
 // ===== CORRECCIÓN CHATBOT =====
@@ -236,15 +236,10 @@ function buildSystemPrompt() {
   const precios = DB.get('precios', {});
   const knowledge = DB.get('aluKnowledge', []);
   const todayStr = today();
+  const cfg = getConfig();
 
-  const HABS = {
-    '1': { camas: 8, desc: 'Hab. 1 — vista al mar, baño en suite, 8 camas' },
-    '2': { camas: 6, desc: 'Hab. 2 — vista al mar, baño compartido, 6 camas' },
-    '3': { camas: 6, desc: 'Hab. 3 — gran balcón, baño en suite, 6 camas' },
-    '4': { camas: 6, desc: 'Hab. 4 — baño compartido, 6 camas' },
-    '5': { camas: 6, desc: 'Hab. 5 — EN MANTENIMIENTO, no disponible' },
-    '6': { camas: 6, desc: 'Hab. 6 — EN MANTENIMIENTO, no disponible' },
-  };
+  const habitaciones = cfg.hostel.habitaciones;
+  const habitacionesActivas = habitaciones.filter(h => h.activa && h.camas > 0);
 
   const camasMantenimiento = Object.entries(bedStates)
     .filter(([, v]) => v?.estado === 'maintenance').map(([k]) => k);
@@ -258,16 +253,26 @@ function buildSystemPrompt() {
   }
 
   function libresPorHab(fechaStr) {
-    return Object.entries(HABS)
-      .filter(([h]) => h !== '5' && h !== '6')
-      .map(([h, info]) => {
-        const ocup = reservas.filter(r =>
-          r.hab === h && r.estado !== 'checkout' && r.entrada <= fechaStr && r.salida > fechaStr
-        ).length;
-        const libres = Math.max(0, info.camas - ocup);
-        return `- Hab. ${h}: ${libres}/${info.camas} camas libres`;
-      }).join('\n');
+    return habitacionesActivas.map(h => {
+      const ocup = reservas.filter(r =>
+        r.hab === h.id && r.estado !== 'checkout' && r.entrada <= fechaStr && r.salida > fechaStr
+      ).length;
+      const libres = Math.max(0, h.camas - ocup);
+      return `- ${h.nombre}: ${libres}/${h.camas} camas libres`;
+    }).join('\n');
   }
+
+  // Descripción dinámica de habitaciones
+  const habsDesc = habitaciones.map(h => {
+    if (!h.activa || h.camas === 0) {
+      return `- ${h.nombre}: NO DISPONIBLE${h.nota ? ' (' + h.nota + ')' : ''}`;
+    }
+    const partes = [`${h.camas} camas`];
+    if (h.tipo) partes.push(h.tipo);
+    if (h.privada !== undefined) partes.push(h.privada ? 'privada' : 'compartida');
+    if (h.nota) partes.push(h.nota);
+    return `- ${h.nombre}: ${partes.join(', ')}`;
+  }).join('\n');
 
   let dispProximas = '';
   for (let i = 0; i <= 14; i++) {
@@ -303,8 +308,9 @@ INFORMACIÓN DEL HOSTEL:
 - Servicios: Living, comedor, cocina equipada, pool, WiFi, té y café de cortesía
 - CHECK-IN: 15hs | CHECK-OUT: 10hs (flexibles)
 
-HABITACIONES (todas compartidas mixtas):
-${Object.values(HABS).map(h => `- ${h.desc}`).join('\n')}
+HABITACIONES:
+${habsDesc}
+(Las habitaciones marcadas como NO DISPONIBLES no deben ofrecerse al cliente bajo ninguna circunstancia.)
 
 PRECIOS:
 ${preciosTexto}

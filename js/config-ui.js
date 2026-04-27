@@ -1,6 +1,6 @@
 // ===================== CONFIGURACIÓN =====================
 import { DB } from './firebase-config.js';
-import { showNotif } from './helpers.js';
+import { showNotif, openModal, closeModal } from './helpers.js';
 import { getConfig, CONFIG_DEFAULTS, getTotalCamas } from './config.js';
 
 function _periodoLabel(p) {
@@ -247,14 +247,23 @@ export async function addHabitacion() {
   showNotif('Habitación agregada');
 }
 
-export async function removeHabitacion(i) {
-  const stored = DB.get('config', {});
+export function removeHabitacion(i) {
   const cfg = getConfig();
-  const habitaciones = cfg.hostel.habitaciones.filter((_, idx) => idx !== i);
-  stored.hostel = { nombre: cfg.hostel.nombre, habitaciones };
-  await DB.set('config', stored);
-  renderConfig();
-  showNotif('Habitación eliminada');
+  const h = cfg.hostel.habitaciones[i];
+  const nombre = h ? h.nombre : `Habitación #${i + 1}`;
+  document.getElementById('confirmDeleteMsg').innerHTML =
+    `¿Eliminar <strong>${nombre}</strong>? Esta acción no se puede deshacer.`;
+  const btn = document.getElementById('confirmDeleteBtn');
+  btn.onclick = async () => {
+    const stored = DB.get('config', {});
+    const habitaciones = cfg.hostel.habitaciones.filter((_, idx) => idx !== i);
+    stored.hostel = { nombre: cfg.hostel.nombre, habitaciones };
+    await DB.set('config', stored);
+    closeModal('modalConfirmDelete');
+    renderConfig();
+    showNotif('Habitación eliminada');
+  };
+  openModal('modalConfirmDelete');
 }
 
 export async function saveConfigTemporada(tipo) {

@@ -1,7 +1,7 @@
 // ===================== GRILLA DE RESERVAS =====================
 import { DB } from './firebase-config.js';
 import { today, dateToLocal } from './helpers.js';
-import { habBeds } from './config.js';
+import { getConfig, habBeds } from './config.js';
 
 let grillaFechaInicio = null;
 const GRILLA_DIAS = 14;
@@ -61,12 +61,16 @@ export function renderGrilla() {
   html += '</tr></thead><tbody>';
 
   // Filas por habitación y cama
-  for (let h = 1; h <= 6; h++) {
-    const hs = String(h);
-    const beds = habBeds(hs);
+  for (const hab of getConfig().hostel.habitaciones) {
+    const beds = habBeds(hab.id);
+    if (beds.length === 0) continue;
+
+    const inactiveTag = !hab.activa
+      ? ` <span style="color:#f59e0b;font-size:11px;font-weight:500;">(inactiva${hab.nota ? ': ' + hab.nota : ''})</span>`
+      : '';
 
     // Fila separador de habitación
-    html += `<tr class="grilla-hab-header"><td colspan="${fechas.length + 1}">Habitación ${h} (${beds.length} camas)</td></tr>`;
+    html += `<tr class="grilla-hab-header"><td colspan="${fechas.length + 1}">${hab.nombre} (${beds.length} camas)${inactiveTag}</td></tr>`;
 
     beds.forEach(b => {
       html += `<tr><td class="cama-label">Cama ${b.label}</td>`;
