@@ -2,6 +2,7 @@
 import { DB } from './firebase-config.js';
 import { today, fmtMoney, platBadge, estadoBadge, pagoBadge, showNotif, openModal, closeModal, nightsBetween } from './helpers.js';
 import { getConfig, habBeds, camaLabel } from './config.js';
+import { logAuditoria } from './auditoria.js';
 
 function getHuespedNombre(id) {
   const h = DB.get('huespedes', []).find(x => x.id === id);
@@ -164,6 +165,7 @@ export async function saveReserva() {
   }
   savingReserva = false;
   if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar Reserva'; }
+  logAuditoria('crear', 'reserva', r.id, `Nueva reserva: ${getHuespedNombre(h)} — Hab.${hab} ${entrada}→${salida}`, null, r);
   closeModal('modalReserva');
   renderReservas();
   showNotif('Reserva guardada correctamente');
@@ -213,6 +215,7 @@ export async function confirmCheckin() {
     r.estadoPago = 'total';
   }
   await DB.set('reservas', reservas);
+  logAuditoria('editar', 'reserva', rid, `Check-in: ${getHuespedNombre(r.huespedId)} — Hab.${r.hab}${llave ? ', llave ' + llave : ''}`);
   closeModal('modalCheckin');
   renderReservas();
   const { renderCheckin } = await import('./checkin.js');
@@ -256,6 +259,7 @@ export function savePago() {
   const movs = DB.get('movimientos', []);
   movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto, metodo, fecha: today(), concepto });
   DB.set('movimientos', movs);
+  logAuditoria('editar', 'reserva', rid, `Pago registrado: ${fmtMoney(monto, r.moneda)} — ${getHuespedNombre(r.huespedId)}`);
   closeModal('modalPago');
   renderReservas();
   showNotif('💰 Pago registrado: ' + fmtMoney(monto, r.moneda));
@@ -317,6 +321,7 @@ export async function saveExtension() {
     r.estadoPago = 'senia';
   }
   await DB.set('reservas', reservas);
+  logAuditoria('editar', 'reserva', rid, `Extensión ${extra} noche(s) hasta ${nuevaSalida} — ${getHuespedNombre(r.huespedId)}`);
   closeModal('modalExtender');
   renderReservas();
   showNotif(`📅 Estadía extendida ${extra} noche(s) hasta ${nuevaSalida}`);
@@ -331,6 +336,7 @@ export async function doCheckout(rid) {
   beds[r.cama] = 'dirty';
   await DB.set('beds', beds);
   await DB.set('reservas', reservas);
+  logAuditoria('editar', 'reserva', rid, `Check-out: ${getHuespedNombre(r.huespedId)} — Hab.${r.hab}`);
   renderReservas();
   const { renderCheckin } = await import('./checkin.js');
   renderCheckin();
@@ -359,6 +365,7 @@ export async function limpiarDuplicados() {
   }
   if (!confirm(`Se encontraron ${duplicadas.length} reserva(s) duplicada(s). ¿Eliminamos?`)) return;
   await DB.set('reservas', limpias);
+  logAuditoria('eliminar', 'reserva', null, `Limpieza duplicados: ${duplicadas.length} reserva(s) eliminada(s) — IDs: ${duplicadas.join(', ')}`);
   renderReservas();
   showNotif(`🧹 ${duplicadas.length} duplicado(s) eliminado(s)`);
 }
@@ -422,6 +429,7 @@ export async function saveCambioCama() {
   if (nuevaLlave) r.llave = nuevaLlave;
   if (motivo) r.notas = (r.notas ? r.notas + ' | ' : '') + 'Cambio de cama: ' + motivo;
   await DB.set('reservas', reservas);
+  logAuditoria('editar', 'reserva', rid, `Cambio de cama: ${getHuespedNombre(r.huespedId)} — cama ${camaAnterior} → cama ${camaLabel(nuevaCama)}${motivo ? ' (' + motivo + ')' : ''}`);
   closeModal('modalCambioCama');
   renderReservas();
   const { renderCheckin } = await import('./checkin.js');
@@ -495,6 +503,7 @@ export async function saveHorario() {
     await DB.set('movimientos', movs);
   }
   await DB.set('reservas', reservas);
+  logAuditoria('editar', 'reserva', rid, `${tipo === 'late' ? 'Late check-out' : 'Early check-in'} ${hora}hs — ${getHuespedNombre(r.huespedId)}${cobrar ? ', cobrado ' + fmtMoney(monto, moneda) : ' (cortesía)'}`);
   closeModal('modalHorario');
   const { renderCheckin } = await import('./checkin.js');
   renderCheckin();
@@ -511,6 +520,7 @@ export async function deleteReserva(id) {
     delete beds[toDelete.cama];
     await DB.set('beds', beds);
   }
+  logAuditoria('eliminar', 'reserva', id, `Reserva eliminada: ${toDelete ? getHuespedNombre(toDelete.huespedId) + ' Hab.' + toDelete.hab + ' ' + toDelete.entrada + '→' + toDelete.salida : id}`, toDelete, null);
   closeModal('modalConfirmDelete');
   renderReservas();
   showNotif('Reserva eliminada');

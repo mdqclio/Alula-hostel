@@ -2,6 +2,7 @@
 import { DB } from './firebase-config.js';
 import { showNotif, openModal, closeModal } from './helpers.js';
 import { getConfig, CONFIG_DEFAULTS, getTotalCamas, getCategorias, getCuentas, getMetodosPago, getPlataformas, getMonedas, getChatQuickReplies } from './config.js';
+import { logAuditoria } from './auditoria.js';
 
 const inp = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;width:100%;font-size:13px;';
 
@@ -377,6 +378,7 @@ export async function saveConfigHostel() {
   const stored = DB.get('config', {});
   stored.hostel = { nombre, habitaciones };
   await DB.set('config', stored);
+  logAuditoria('editar', 'config', 'hostel', `Config hostel guardada: ${nombre}, ${habitaciones.length} habitaciones`);
   renderConfig();
   showNotif('Estructura del hostel guardada');
 }
@@ -421,6 +423,7 @@ export async function saveConfigTemporada(tipo) {
     moneda: document.getElementById(`cfg-t-${tipo}-moneda`).value,
   };
   await DB.set('config', stored);
+  logAuditoria('editar', 'config', `temporada-${tipo}`, `Temporada ${tipo} actualizada: ${stored.temporadas[tipo].nombre} — ${stored.temporadas[tipo].moneda} ${stored.temporadas[tipo].precio}`);
   renderConfig();
   showNotif(`Precio de ${stored.temporadas[tipo].nombre} guardado`);
 }
@@ -434,6 +437,7 @@ export async function saveConfigHorarios() {
     earlyCheckin: document.getElementById('cfg-early').value    || CONFIG_DEFAULTS.horarios.earlyCheckin,
   };
   await DB.set('config', stored);
+  logAuditoria('editar', 'config', 'horarios', `Horarios actualizados — CI: ${stored.horarios.checkin}, CO: ${stored.horarios.checkout}`);
   renderConfig();
   showNotif('Horarios guardados');
 }
@@ -449,6 +453,7 @@ export async function addCategoriaContable(tipo) {
   if (stored.categorias[tipo].includes(val)) { showNotif('Esa categoría ya existe', 'error'); return; }
   stored.categorias[tipo].push(val);
   await DB.set('config', stored);
+  logAuditoria('crear', 'config', `categoria-${tipo}`, `Categoría agregada: "${val}" en ${tipo}`);
   renderConfig();
   showNotif(`Categoría "${val}" agregada`);
 }
@@ -515,6 +520,7 @@ export async function saveCuentaCfg() {
   }
   stored.cuentas = cuentas;
   await DB.set('config', stored);
+  logAuditoria(id ? 'editar' : 'crear', 'cuenta', data.id, `${id ? 'Cuenta editada' : 'Cuenta creada'}: ${data.nombre} (${data.tipo}, ${data.moneda})`);
   closeModal('modalCuenta');
   renderConfig();
   showNotif(id ? 'Cuenta actualizada' : 'Cuenta creada');
@@ -527,6 +533,7 @@ export function deleteCuentaCfg(id, nombre) {
     const stored = DB.get('config', {});
     stored.cuentas = getCuentas().filter(c => c.id !== id);
     await DB.set('config', stored);
+    logAuditoria('eliminar', 'cuenta', id, `Cuenta eliminada: ${nombre}`);
     closeModal('modalConfirmDelete');
     renderConfig();
     showNotif('Cuenta eliminada');

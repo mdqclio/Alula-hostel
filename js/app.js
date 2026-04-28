@@ -1,7 +1,7 @@
 // ===================== APP — Punto de entrada =====================
-import { loadAllData } from './firebase-config.js';
+import './firebase-config.js';
 import { openModal, closeModal, showNotif, today } from './helpers.js';
-import { doLogin, doLogout } from './auth.js';
+import { doLogin, doLogout, openChangePassword, saveChangePassword, initAuth } from './auth.js';
 import { showSection, closeSidebar, openSidebar, toggleSidebar, updateDate } from './navigation.js';
 import { renderDashboard, onEntradaChange } from './dashboard.js';
 import { renderMapa, mapaNavegar, renderMapaFecha, cycleBed } from './mapa.js';
@@ -51,13 +51,17 @@ import {
   saveApiKey, copyMsg, loadApiKeyFromFirebase,
   openChatCorrect, closeChatCorrect, saveChatCorrect
 } from './chatbot.js';
+import {
+  renderHistorial, aplicarFiltroHistorial, verDetalleAuditoria,
+  historialPaginaAnterior, historialPaginaSiguiente
+} from './auditoria.js';
 
 // ===================== EXPONER FUNCIONES GLOBALMENTE =====================
 // Necesario para onclick="..." en el HTML porque type="module" tiene scope privado
 
 Object.assign(window, {
   // Auth
-  doLogin, doLogout,
+  doLogin, doLogout, openChangePassword, saveChangePassword,
 
   // Navigation
   showSection, closeSidebar, openSidebar, toggleSidebar,
@@ -128,6 +132,10 @@ Object.assign(window, {
   saveApiKey, copyMsg, loadApiKeyFromFirebase,
   openChatCorrect, closeChatCorrect, saveChatCorrect,
 
+  // Historial / Auditoría
+  renderHistorial, aplicarFiltroHistorial, verDetalleAuditoria,
+  historialPaginaAnterior, historialPaginaSiguiente,
+
   // Helpers globales
   openModal, closeModal, today, cycleBed,
 });
@@ -152,8 +160,5 @@ document.addEventListener('change', function(e) {
   }
 });
 
-// Cargar datos y mostrar dashboard
-loadAllData().then(async () => {
-  await loadApiKeyFromFirebase();
-  showSection('dashboard');
-});
+// Inicializar auth: detecta sesión existente o espera login
+initAuth();

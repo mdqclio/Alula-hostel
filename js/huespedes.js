@@ -1,6 +1,7 @@
 // ===================== HUÉSPEDES =====================
 import { DB } from './firebase-config.js';
 import { showNotif, openModal, closeModal, fmtMoney, estadoBadge, nightsBetween } from './helpers.js';
+import { logAuditoria } from './auditoria.js';
 
 export function getScoreBadge(score) {
   if (!score) return '<span style="font-size:11px;color:var(--text3)">Sin calificar</span>';
@@ -130,7 +131,9 @@ export function saveHuesped() {
     foto: foto && foto !== window.location.href ? foto : null,
     estadias: 0
   });
+  const nuevoH = huespedes[huespedes.length - 1];
   DB.set('huespedes', huespedes);
+  logAuditoria('crear', 'huesped', nuevoH.id, `Nuevo huésped: ${nombre} ${apellido} — DNI ${dni}`, null, { nombre, apellido, dni });
   closeModal('modalHuesped');
   renderHuespedes();
   showNotif('Huésped registrado: ' + nombre + ' ' + apellido);
@@ -191,6 +194,7 @@ export async function saveEditHuesped() {
   h.obs = document.getElementById('eh-obs').value.trim();
   h.pendiente = false;
   await DB.set('huespedes', huespedes);
+  logAuditoria('editar', 'huesped', id, `Huésped editado: ${nombre} ${apellido}`);
   closeModal('modalEditHuesped');
   renderHuespedes();
   showNotif('Huésped actualizado: ' + nombre + ' ' + apellido);
@@ -215,10 +219,12 @@ export function confirmDelete(tipo, id, nombre) {
 }
 
 export async function deleteHuesped(id) {
+  const toDelete = DB.get('huespedes', []).find(h => h.id === id);
   const huespedes = DB.get('huespedes', []).filter(h => h.id !== id);
   const reservas  = DB.get('reservas',  []).filter(r => r.huespedId !== id);
   await DB.set('huespedes', huespedes);
   await DB.set('reservas', reservas);
+  logAuditoria('eliminar', 'huesped', id, `Huésped eliminado: ${toDelete ? toDelete.nombre + ' ' + toDelete.apellido : id}`, toDelete, null);
   closeModal('modalConfirmDelete');
   renderHuespedes();
   const { renderReservas } = await import('./reservas.js');

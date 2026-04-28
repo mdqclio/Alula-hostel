@@ -2,6 +2,7 @@
 import { DB } from './firebase-config.js';
 import { today, fmtMoney, showNotif, openModal, closeModal } from './helpers.js';
 import { getCuentas, getCategorias } from './config.js';
+import { logAuditoria } from './auditoria.js';
 
 // ===== TIPO DE CAMBIO (bluelytics) =====
 async function fetchTC() {
@@ -61,19 +62,28 @@ function actualizarTCyWarning(monedaId, cuentaId, tcRowId, warningId, tcInputId)
 // ===== MODAL MOVIMIENTO =====
 export function openMovimientoModal() {
   popularCuentasSelect('mov-cuenta');
-  const tipo = document.getElementById('mov-tipo')?.value || 'ingreso';
-  populateCategoriasSelect('mov-cat', tipo);
-  document.getElementById('mov-fecha').value = today();
-  document.getElementById('mov-tc-row').style.display = 'none';
-  document.getElementById('mov-moneda-warning').style.display = 'none';
 
-  document.getElementById('mov-tipo').onchange = function() {
+  const tipoEl    = document.getElementById('mov-tipo');
+  const catEl     = document.getElementById('mov-cat');
+  const fechaEl   = document.getElementById('mov-fecha');
+  const tcRowEl   = document.getElementById('mov-tc-row');
+  const warnEl    = document.getElementById('mov-moneda-warning');
+  const monedaEl  = document.getElementById('mov-moneda');
+  const cuentaEl  = document.getElementById('mov-cuenta');
+
+  const tipo = tipoEl?.value || 'ingreso';
+  if (catEl) populateCategoriasSelect('mov-cat', tipo);
+  if (fechaEl) fechaEl.value = today();
+  if (tcRowEl) tcRowEl.style.display = 'none';
+  if (warnEl)  warnEl.style.display  = 'none';
+
+  if (tipoEl) tipoEl.onchange = function() {
     populateCategoriasSelect('mov-cat', this.value);
   };
-  document.getElementById('mov-moneda').onchange = function() {
+  if (monedaEl) monedaEl.onchange = function() {
     actualizarTCyWarning('mov-moneda', 'mov-cuenta', 'mov-tc-row', 'mov-moneda-warning', 'mov-tc');
   };
-  document.getElementById('mov-cuenta').onchange = function() {
+  if (cuentaEl) cuentaEl.onchange = function() {
     actualizarTCyWarning('mov-moneda', 'mov-cuenta', 'mov-tc-row', 'mov-moneda-warning', 'mov-tc');
   };
 
@@ -134,6 +144,7 @@ export function saveMovimiento() {
   const movs = DB.get('movimientos', []);
   movs.push(mov);
   DB.set('movimientos', movs);
+  logAuditoria('crear', 'movimiento', mov.id, `${mov.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'}: ${fmtMoney(mov.monto, mov.moneda)} — ${mov.concepto}`, null, mov);
   closeModal('modalMovimiento');
   renderCaja();
   showNotif('Movimiento registrado');
@@ -162,29 +173,39 @@ export function cerrarCaja() {
 export async function openTransferenciaModal() {
   const cuentas = getCuentas().filter(c => c.activa);
   const opts = cuentas.map(c => `<option value="${c.id}">${c.nombre} (${c.moneda})</option>`).join('');
-  document.getElementById('transf-origen').innerHTML = opts;
-  document.getElementById('transf-destino').innerHTML = opts;
-  document.getElementById('transf-fecha').value = today();
-  document.getElementById('transf-monto').value = '';
-  document.getElementById('transf-concepto').value = '';
-  document.getElementById('transf-tc').value = '';
-  document.getElementById('transf-tc-row').style.display = 'none';
-  document.getElementById('transf-moneda-warning').style.display = 'none';
+
+  const origenEl  = document.getElementById('transf-origen');
+  const destinoEl = document.getElementById('transf-destino');
+  const fechaEl   = document.getElementById('transf-fecha');
+  const montoEl   = document.getElementById('transf-monto');
+  const conceptoEl= document.getElementById('transf-concepto');
+  const tcEl      = document.getElementById('transf-tc');
+  const tcRowEl   = document.getElementById('transf-tc-row');
+  const warnEl    = document.getElementById('transf-moneda-warning');
+
+  if (origenEl)  origenEl.innerHTML  = opts;
+  if (destinoEl) destinoEl.innerHTML = opts;
+  if (fechaEl)   fechaEl.value   = today();
+  if (montoEl)   montoEl.value   = '';
+  if (conceptoEl)conceptoEl.value= '';
+  if (tcEl)      tcEl.value      = '';
+  if (tcRowEl)   tcRowEl.style.display  = 'none';
+  if (warnEl)    warnEl.style.display   = 'none';
 
   const checkMonedas = () => {
-    const origen  = cuentas.find(c => c.id === document.getElementById('transf-origen').value);
-    const destino = cuentas.find(c => c.id === document.getElementById('transf-destino').value);
+    const origen  = cuentas.find(c => c.id === origenEl?.value);
+    const destino = cuentas.find(c => c.id === destinoEl?.value);
     const distinto = origen && destino && origen.moneda !== destino.moneda;
-    document.getElementById('transf-tc-row').style.display = distinto ? '' : 'none';
-    document.getElementById('transf-moneda-warning').style.display = distinto ? '' : 'none';
-    if (distinto && !document.getElementById('transf-tc').value) {
+    if (tcRowEl) tcRowEl.style.display  = distinto ? '' : 'none';
+    if (warnEl)  warnEl.style.display   = distinto ? '' : 'none';
+    if (distinto && tcEl && !tcEl.value) {
       const lastTC = getLastTC();
-      if (lastTC) { document.getElementById('transf-tc').value = lastTC; }
-      else fetchTC().then(tc => { if (tc) document.getElementById('transf-tc').value = tc; });
+      if (lastTC) { tcEl.value = lastTC; }
+      else fetchTC().then(tc => { if (tc && tcEl) tcEl.value = tc; });
     }
   };
-  document.getElementById('transf-origen').onchange = checkMonedas;
-  document.getElementById('transf-destino').onchange = checkMonedas;
+  if (origenEl)  origenEl.onchange  = checkMonedas;
+  if (destinoEl) destinoEl.onchange = checkMonedas;
 
   openModal('modalTransferencia');
 }
@@ -227,6 +248,7 @@ export async function saveTransferencia() {
     ...(tc ? { tcARS: tc } : {})
   });
   await DB.set('movimientos', movs);
+  logAuditoria('crear', 'movimiento', transferenciaId, `Transferencia: ${fmtMoney(monto, origen?.moneda)} de ${origen?.nombre} → ${destino?.nombre}`);
   closeModal('modalTransferencia');
   renderCaja();
   showNotif(`🔄 Transferencia: ${fmtMoney(monto, origen?.moneda)} de ${origen?.nombre} → ${destino?.nombre}`);

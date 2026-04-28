@@ -96,11 +96,15 @@
       <div class="nav-item admin-only" onclick="showSection('roles');closeSidebar()" id="nav-roles" style="display:none;">
         <span class="icon">🔑</span> Roles y Permisos
       </div>
+      <div class="nav-item admin-only" onclick="showSection('historial');closeSidebar()" id="nav-historial" style="display:none;">
+        <span class="icon">📜</span> Historial
+      </div>
       <div class="nav-item admin-only" onclick="showSection('config');closeSidebar()" id="nav-config" style="display:none;">
         <span class="icon">⚙️</span> Configuración
       </div>
     </nav>
     <div class="sidebar-footer">
+      <button class="btn btn-ghost btn-sm" style="width:100%;margin-bottom:8px;font-size:12px;" onclick="openChangePassword();closeSidebar()">🔑 Cambiar contraseña</button>
       <button class="btn-logout" onclick="doLogout()">← Cerrar sesión</button>
     </div>
   </div>
@@ -302,6 +306,11 @@
     <!-- SALDOS POR CUENTA -->
     <div id="section-saldos" class="section">
       <div id="saldosContent"></div>
+    </div>
+
+    <!-- HISTORIAL DE CAMBIOS -->
+    <div id="section-historial" class="section">
+      <div id="historialContent"></div>
     </div>
 
     <!-- CAJA DIARIA -->
@@ -543,7 +552,7 @@
       <div class="form-group"><label>Provincia / Estado</label><input type="text" id="eh-provincia"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="eh-fechaNacimiento"></div>
+      <div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="eh-nacimiento"></div>
       <div class="form-group"><label>Género</label>
         <select id="eh-genero">
           <option value="">No especifica</option>
@@ -751,7 +760,7 @@
       <div class="form-group"><label>Provincia / Estado</label><input type="text" id="h-provincia" placeholder="Buenos Aires"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="h-fechaNacimiento"></div>
+      <div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="h-nacimiento"></div>
       <div class="form-group"><label>Género</label>
         <select id="h-genero">
           <option value="">No especifica</option>
@@ -797,7 +806,12 @@
         <select id="mov-cuenta"></select>
       </div>
       <div class="form-group"><label>Método</label>
-        <select id="mov-metodo"></select>
+        <select id="mov-metodo">
+          <option value="efectivo">Efectivo</option>
+          <option value="transferencia">Transferencia</option>
+          <option value="mercadopago">Mercado Pago</option>
+          <option value="tarjeta">Tarjeta</option>
+        </select>
       </div>
     </div>
     <div class="form-row">
@@ -807,10 +821,9 @@
       <div class="form-group"><label>Monto *</label><input type="number" id="mov-monto" placeholder="0"></div>
     </div>
     <div class="form-row" id="mov-tc-row" style="display:none;">
-      <div class="form-group"><label>Tipo de cambio ARS/USD</label><input type="number" id="mov-tcARS" placeholder="Ej: 1430"></div>
-      <div class="form-group"><label>Equivalente ARS</label><input type="number" id="mov-equivalenteARS" placeholder="Se calcula automático" readonly style="background:var(--surface3);color:var(--accent2);"></div>
+      <div class="form-group"><label>Tipo de cambio ARS/USD</label><input type="number" id="mov-tc" placeholder="Ej: 1430"></div>
     </div>
-    <div id="mov-cuenta-warn" style="display:none;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:8px;"></div>
+    <div id="mov-moneda-warning" style="display:none;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:8px;"></div>
     <div class="form-row">
       <div class="form-group"><label>Fecha</label><input type="date" id="mov-fecha"></div>
     </div>
@@ -854,7 +867,7 @@
         <input type="password" id="u-pass2" placeholder="Repetir contraseña">
       </div>
     </div>
-    <p style="font-size:11px;color:var(--text3);margin-top:-8px">⚠️ Las contraseñas se guardan localmente. Para producción, usar un backend seguro.</p>
+    <p style="font-size:11px;color:var(--text3);margin-top:-8px">Mínimo 6 caracteres. La contraseña se almacena de forma segura en Firebase Auth.</p>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalUsuario')">Cancelar</button>
       <button class="btn btn-blue" onclick="saveUsuario()">Guardar</button>
@@ -982,23 +995,23 @@
     <h2>🔄 Transferencia entre cuentas</h2>
     <div class="form-row">
       <div class="form-group"><label>Cuenta origen *</label>
-        <select id="trf-origen"></select>
+        <select id="transf-origen"></select>
       </div>
       <div class="form-group"><label>Cuenta destino *</label>
-        <select id="trf-destino"></select>
+        <select id="transf-destino"></select>
       </div>
     </div>
-    <div id="trf-moneda-warn" style="display:none;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:8px;">
+    <div id="transf-moneda-warning" style="display:none;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:8px;">
       ⚠️ Las cuentas tienen monedas distintas. Ingresá el tipo de cambio.
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Monto *</label><input type="number" id="trf-monto" placeholder="0"></div>
-      <div class="form-group"><label>Fecha</label><input type="date" id="trf-fecha"></div>
+      <div class="form-group"><label>Monto *</label><input type="number" id="transf-monto" placeholder="0"></div>
+      <div class="form-group"><label>Fecha</label><input type="date" id="transf-fecha"></div>
     </div>
-    <div class="form-row" id="trf-tc-row" style="display:none;">
-      <div class="form-group"><label>Tipo de cambio ARS/USD</label><input type="number" id="trf-tcARS" placeholder="Ej: 1430"></div>
+    <div class="form-row" id="transf-tc-row" style="display:none;">
+      <div class="form-group"><label>Tipo de cambio ARS/USD</label><input type="number" id="transf-tc" placeholder="Ej: 1430"></div>
     </div>
-    <div class="form-group"><label>Concepto</label><input type="text" id="trf-concepto" placeholder="Ej: Paso efectivo a banco"></div>
+    <div class="form-group"><label>Concepto</label><input type="text" id="transf-concepto" placeholder="Ej: Paso efectivo a banco"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalTransferencia')">Cancelar</button>
       <button class="btn btn-blue" onclick="saveTransferencia()">Confirmar transferencia</button>
@@ -1009,12 +1022,12 @@
 <!-- MODAL CUENTA (Config) -->
 <div class="modal-overlay" id="modalCuenta">
   <div class="modal">
-    <h2 id="modalCuentaTitle">Nueva Cuenta</h2>
-    <input type="hidden" id="cuenta-id">
+    <h2 id="modalCuentaTitulo">Nueva Cuenta</h2>
+    <input type="hidden" id="cuenta-cfg-id">
     <div class="form-row">
-      <div class="form-group"><label>Nombre *</label><input type="text" id="cuenta-nombre" placeholder="Ej: Caja efectivo"></div>
+      <div class="form-group"><label>Nombre *</label><input type="text" id="cuenta-cfg-nombre" placeholder="Ej: Caja efectivo"></div>
       <div class="form-group"><label>Tipo</label>
-        <select id="cuenta-tipo">
+        <select id="cuenta-cfg-tipo">
           <option value="efectivo">Efectivo</option>
           <option value="banco">Banco</option>
           <option value="digital">Billetera digital</option>
@@ -1023,26 +1036,92 @@
     </div>
     <div class="form-row">
       <div class="form-group"><label>Moneda</label>
-        <select id="cuenta-moneda">
+        <select id="cuenta-cfg-moneda">
           <option value="ARS">ARS</option>
           <option value="USD">USD</option>
         </select>
       </div>
-      <div class="form-group"><label>Responsable</label><input type="text" id="cuenta-responsable" placeholder="Nombre (opcional)"></div>
+      <div class="form-group"><label>Responsable</label><input type="text" id="cuenta-cfg-responsable" placeholder="Nombre (opcional)"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Saldo inicial</label><input type="number" id="cuenta-saldoInicial" placeholder="0"></div>
-      <div class="form-group"><label>Fecha saldo inicial</label><input type="date" id="cuenta-fechaSaldoInicial"></div>
+      <div class="form-group"><label>Saldo inicial</label><input type="number" id="cuenta-cfg-saldo" placeholder="0"></div>
+      <div class="form-group"><label>Fecha saldo inicial</label><input type="date" id="cuenta-cfg-fecha"></div>
     </div>
     <div class="form-group">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-        <input type="checkbox" id="cuenta-activa" checked style="width:auto;">
+        <input type="checkbox" id="cuenta-cfg-activa" checked style="width:auto;">
         Cuenta activa
       </label>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalCuenta')">Cancelar</button>
       <button class="btn btn-blue" onclick="saveCuentaCfg()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div class="modal-overlay" id="modalChangePassword">
+  <div class="modal" style="max-width:400px;">
+    <h2>🔑 Cambiar contraseña</h2>
+    <div class="form-group">
+      <label>Contraseña actual *</label>
+      <input type="password" id="cp-actual" placeholder="Tu contraseña actual" onkeydown="if(event.key==='Enter')saveChangePassword()">
+    </div>
+    <div class="form-group">
+      <label>Nueva contraseña *</label>
+      <input type="password" id="cp-nueva" placeholder="Mínimo 6 caracteres" onkeydown="if(event.key==='Enter')saveChangePassword()">
+    </div>
+    <div class="form-group">
+      <label>Confirmar nueva contraseña *</label>
+      <input type="password" id="cp-confirmar" placeholder="Repetir nueva contraseña" onkeydown="if(event.key==='Enter')saveChangePassword()">
+    </div>
+    <p id="cp-error" style="color:#f87171;font-size:12px;min-height:18px;margin-top:-4px;"></p>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalChangePassword')">Cancelar</button>
+      <button class="btn btn-blue" id="btn-guardar-password" onclick="saveChangePassword()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE AUDITORÍA -->
+<div class="modal-overlay" id="modalAuditoriaDetalle">
+  <div class="modal" style="max-width:680px;">
+    <h2>📜 Detalle del registro</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+      <div>
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px;">Fecha y hora</p>
+        <p style="font-size:13px;font-family:'DM Mono'" id="audDetalleFecha">—</p>
+      </div>
+      <div>
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px;">Usuario</p>
+        <p style="font-size:13px" id="audDetalleUsuario">—</p>
+      </div>
+      <div>
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px;">Acción</p>
+        <p style="font-size:13px;font-weight:600" id="audDetalleAccion">—</p>
+      </div>
+      <div>
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px;">Entidad</p>
+        <p style="font-size:13px" id="audDetalleEntidad">—</p>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <p style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:4px;">Descripción</p>
+      <p style="font-size:13px;color:var(--text2)" id="audDetalleDesc">—</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div>
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:6px;">Antes</p>
+        <div id="audDetalleAntes"></div>
+      </div>
+      <div>
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);margin-bottom:6px;">Después</p>
+        <div id="audDetalleDespues"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalAuditoriaDetalle')">Cerrar</button>
     </div>
   </div>
 </div>

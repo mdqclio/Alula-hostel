@@ -1,11 +1,14 @@
 // ===================== AUTH =====================
 import { auth, DB, loadAllData } from './firebase-config.js';
-import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { showNotif } from './helpers.js';
+import { signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { showNotif, openModal, closeModal } from './helpers.js';
 import { CONFIG_DEFAULTS } from './config.js';
+import { logAuditoria } from './auditoria.js';
 
 // Estado global mutable de currentUser
 export const currentUser = { value: null };
+
+let _loggingIn = false;
 
 export const ROLE_LABELS = {
   admin: 'Administración',
@@ -45,9 +48,10 @@ export function applyRoleUI(rolKey, rolObj) {
 }
 
 export async function doLogin() {
+  _loggingIn = true;
   const email = document.getElementById('loginUser').value.trim();
   const pass = document.getElementById('loginPass').value;
-  if (!email || !pass) { showLoginError('Completá email y contraseña'); return; }
+  if (!email || !pass) { _loggingIn = false; showLoginError('Completá email y contraseña'); return; }
   showLoginError('Verificando...', '#60a5fa');
   try {
     await signInWithEmailAndPassword(auth, email, pass);
@@ -62,14 +66,15 @@ export async function doLogin() {
     const rol = roles.find(r => r.id === u.rol);
     const rolKey = rolToKey(u.rol);
     currentUser.value = { id: u.id, name: u.nombre, email: u.email, rol: u.rol, rolKey };
+    logAuditoria('login', 'usuario', u.id, `Login: ${u.nombre} (${u.email})`);
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     document.getElementById('sidebarUserName').textContent = u.nombre;
     document.getElementById('sidebarUserRole').textContent = rol ? rol.nombre : rolKey;
     applyRoleUI(rolKey, rol);
-    // showSection se importa dinámicamente para evitar ciclo
-    const { showSection } = await import('./navigation.js');
-    const { updateDate } = await import('./navigation.js');
+    const { showSection, updateDate } = await import('./navigation.js');
+    const { loadApiKeyFromFirebase } = await import('./chatbot.js');
+    await loadApiKeyFromFirebase();
     showSection('dashboard');
     updateDate();
   } catch(e) {
@@ -79,14 +84,122 @@ export async function doLogin() {
       ? 'Demasiados intentos. Esperá unos minutos.'
       : 'Error al iniciar sesión. Intentá de nuevo.';
     showLoginError(msg);
+  } finally {
+    _loggingIn = false;
   }
 }
 
 export async function doLogout() {
+  logAuditoria('logout', 'usuario', currentUser.value?.id || null, `Logout: ${currentUser.value?.name || '—'}`);
   await signOut(auth);
   currentUser.value = null;
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
+}
+
+export function openChangePassword() {
+  ['cp-actual', 'cp-nueva', 'cp-confirmar'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const errEl = document.getElementById('cp-error');
+  if (errEl) errEl.textContent = '';
+  openModal('modalChangePassword');
+}
+
+export async function saveChangePassword() {
+  const actual    = document.getElementById('cp-actual')?.value || '';
+  const nueva     = document.getElementById('cp-nueva')?.value || '';
+  const confirmar = document.getElementById('cp-confirmar')?.value || '';
+  const errEl     = document.getElementById('cp-error');
+
+  const setErr = msg => { if (errEl) errEl.textContent = msg; };
+
+  if (!actual || !nueva || !confirmar) { setErr('Completá todos los campos.'); return; }
+  if (nueva.length < 6)               { setErr('La nueva contraseña debe tener al menos 6 caracteres.'); return; }
+  if (nueva !== confirmar)             { setErr('Las contraseñas nuevas no coinciden.'); return; }
+
+  const user = auth.currentUser;
+  if (!user) { setErr('No hay sesión activa.'); return; }
+
+  const btn = document.getElementById('btn-guardar-password');
+  if (btn) { btn.disabled = true; btn.textContent = 'Verificando...'; }
+
+  try {
+    // Re-autenticar con la contraseña actual
+    const credential = EmailAuthProvider.credential(user.email, actual);
+    await reauthenticateWithCredential(user, credential);
+
+    // Cambiar contraseña en Firebase Auth
+    await updatePassword(user, nueva);
+
+    // Actualizar en la colección de usuarios (campo pass)
+    const usuarios = DB.get('usuarios', []);
+    const u = usuarios.find(x => x.email.toLowerCase() === user.email.toLowerCase());
+    if (u) { u.pass = nueva; await DB.set('usuarios', usuarios); }
+
+    logAuditoria('editar', 'usuario', currentUser.value?.id || null, 'Cambió su contraseña');
+
+    closeModal('modalChangePassword');
+    showNotif('✅ Contraseña actualizada correctamente');
+  } catch(e) {
+    const msg =
+      e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential'
+        ? 'La contraseña actual es incorrecta.'
+        : e.code === 'auth/too-many-requests'
+        ? 'Demasiados intentos. Esperá unos minutos.'
+        : 'Error al cambiar la contraseña. Intentá de nuevo.';
+    setErr(msg);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; }
+  }
+}
+
+export function initAuth() {
+  onAuthStateChanged(auth, async (firebaseUser) => {
+    // Si doLogin() está en curso, él mismo maneja la UI — no interferir
+    if (_loggingIn) return;
+    // Si ya hay sesión activa en currentUser, tampoco volver a montar
+    if (currentUser.value) return;
+
+    if (!firebaseUser) {
+      // No hay sesión: mostrar pantalla de login
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+      return;
+    }
+
+    // Hay sesión persitida (usuario refrescó la página): restaurar
+    try {
+      await loadAllData();
+      const usuarios = DB.get('usuarios', []);
+      const u = usuarios.find(x => x.email.toLowerCase() === firebaseUser.email.toLowerCase());
+      if (!u || u.estado === 'inactivo') {
+        await signOut(auth);
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('app').style.display = 'none';
+        return;
+      }
+      const roles = DB.get('roles', []);
+      const rol = roles.find(r => r.id === u.rol);
+      const rolKey = rolToKey(u.rol);
+      currentUser.value = { id: u.id, name: u.nombre, email: u.email, rol: u.rol, rolKey };
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('sidebarUserName').textContent = u.nombre;
+      document.getElementById('sidebarUserRole').textContent = rol ? rol.nombre : rolKey;
+      applyRoleUI(rolKey, rol);
+      const { showSection, updateDate } = await import('./navigation.js');
+      const { loadApiKeyFromFirebase } = await import('./chatbot.js');
+      await loadApiKeyFromFirebase();
+      showSection('dashboard');
+      updateDate();
+    } catch(e) {
+      console.error('[initAuth] Error restaurando sesión:', e);
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+  });
 }
 
 export async function initData() {

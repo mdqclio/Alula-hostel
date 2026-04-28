@@ -16,7 +16,8 @@ export const sectionTitles = {
   roles: 'Roles y Permisos',
   knowledge: 'Base de Conocimiento Alu',
   config: 'Configuración del Sistema',
-  saldos: 'Saldos por Cuenta'
+  saldos: 'Saldos por Cuenta',
+  historial: 'Historial de Cambios'
 };
 
 export async function showSection(s) {
@@ -87,6 +88,10 @@ export async function showSection(s) {
   if (s === 'saldos') {
     const { renderSaldos } = await import('./caja.js');
     loadAllData().then(() => renderSaldos());
+  }
+  if (s === 'historial') {
+    const { renderHistorial } = await import('./auditoria.js');
+    loadAllData().then(() => renderHistorial());
   }
 }
 

@@ -3,6 +3,7 @@ import { DB, auth } from './firebase-config.js';
 import { createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import { showNotif, openModal, closeModal } from './helpers.js';
 import { currentUser } from './auth.js';
+import { logAuditoria } from './auditoria.js';
 
 // ===================== ROLES =====================
 export const MODULES = ['dashboard', 'mapa', 'reservas', 'checkin', 'huespedes', 'precios', 'contabilidad', 'caja'];
@@ -150,8 +151,10 @@ export function toggleUsuarioEstado(id) {
   const usuarios = DB.get('usuarios', []);
   const u = usuarios.find(x => x.id === id);
   if (!u) return;
+  const estadoAnterior = u.estado;
   u.estado = u.estado === 'activo' ? 'inactivo' : 'activo';
   DB.set('usuarios', usuarios);
+  logAuditoria('editar', 'usuario', id, `Usuario ${u.estado === 'activo' ? 'activado' : 'desactivado'}: ${u.nombre}`, { estado: estadoAnterior }, { estado: u.estado });
   renderUsuarios();
   showNotif(`Usuario ${u.estado === 'activo' ? 'activado' : 'desactivado'}: ${u.nombre}`);
 }
@@ -171,6 +174,7 @@ export async function saveUsuario() {
   if (id) {
     const u = usuarios.find(x => x.id === id);
     if (!u) return;
+    const uAntes = { nombre: u.nombre, email: u.email, rol: u.rol, estado: u.estado };
     u.nombre = nombre; u.email = email; u.rol = rol; u.estado = estado;
     if (pass) {
       if (pass.length < 6) { showNotif('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
@@ -181,6 +185,7 @@ export async function saveUsuario() {
       }
     }
     await DB.set('usuarios', usuarios);
+    logAuditoria('editar', 'usuario', id, `Usuario editado: ${nombre} (${email})`, uAntes, { nombre, email, rol, estado });
     showNotif('Usuario actualizado: ' + nombre);
   } else {
     if (!pass) { showNotif('La contraseña es obligatoria', 'error'); return; }
@@ -188,11 +193,10 @@ export async function saveUsuario() {
     if (pass !== pass2) { showNotif('Las contraseñas no coinciden', 'error'); return; }
     try {
       await createUserWithEmailAndPassword(auth, email, pass);
-      usuarios.push({
-        id: 'u' + Date.now(), nombre, email, rol, estado, pass,
-        ultimoAcceso: null
-      });
+      const nuevoU = { id: 'u' + Date.now(), nombre, email, rol, estado, pass, ultimoAcceso: null };
+      usuarios.push(nuevoU);
       await DB.set('usuarios', usuarios);
+      logAuditoria('crear', 'usuario', nuevoU.id, `Usuario creado: ${nombre} (${email}) — rol ${rol}`);
       showNotif('Usuario creado: ' + nombre);
     } catch(e) {
       const msg = e.code === 'auth/email-already-in-use' ? 'Ese email ya está registrado en Firebase Auth' : 'Error al crear usuario: ' + e.message;
