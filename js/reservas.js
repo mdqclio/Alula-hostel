@@ -61,7 +61,20 @@ export function updateBedsSelect() {
   const hab = document.getElementById('res-hab').value;
   const entrada = document.getElementById('res-entrada').value;
   const salida = document.getElementById('res-salida').value;
+
   const sel = document.getElementById('res-cama');
+  function autoAsignarCama() {
+  const entrada = document.getElementById("res-entrada").value;
+  const salida = document.getElementById("res-salida").value;
+
+  if (!entrada || !salida) return;
+
+  const cama = sugerirCama(entrada, salida, window.camas, window.reservas);
+
+  if (!cama) return;
+
+  document.getElementById("res-cama").value = cama.id;
+}
   if (!hab) { sel.innerHTML = '<option>Primero elegí habitación</option>'; return; }
   const reservas = DB.get('reservas', []);
   const beds = habBeds(hab);
