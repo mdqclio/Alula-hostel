@@ -102,6 +102,25 @@ export function updateBedsSelect() {
   }).join('');
 }
 
+// === SUGERENCIA AUTOMÁTICA ===
+const ocupacion = calcularOcupacionGlobal(); // la creamos abajo
+
+const camasDisponibles = obtenerCamasDisponibles(); // adaptás a tu lógica
+
+const sugerida = sugerirMejorCama(camasDisponibles, ocupacion);
+
+if (sugerida) {
+  const select = document.getElementById("res-cama");
+  select.value = sugerida.id;
+
+  const precio = calcularPrecioCama(sugerida, ocupacion);
+  document.getElementById("res-precio").value = precio;
+
+  mostrarInfoSugerida(sugerida, precio);
+}
+
+
+
 export function calcTotalReserva() {
   const precio = Number(document.getElementById('res-precio').value) || 0;
   const entrada = document.getElementById('res-entrada').value;
