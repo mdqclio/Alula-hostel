@@ -539,3 +539,51 @@ export async function deleteReserva(id) {
   renderReservas();
   showNotif('Reserva eliminada');
 }
+// === MEJORA: Hook automático para selector de cama ===
+document.addEventListener("DOMContentLoaded", () => {
+  const intervalo = setInterval(() => {
+    const selectCama = document.getElementById("res-cama");
+
+    if (selectCama && !selectCama.dataset.enhanced) {
+      selectCama.dataset.enhanced = "true";
+
+      // Evento cambio de cama
+      selectCama.addEventListener("change", () => {
+        mostrarInfoCama(selectCama.value);
+      });
+
+      // Crear bloque info si no existe
+      let info = document.getElementById("camaSugeridaInfo");
+      if (!info) {
+        info = document.createElement("div");
+        info.id = "camaSugeridaInfo";
+        info.style.fontSize = "12px";
+        info.style.marginTop = "6px";
+        info.style.color = "var(--text3)";
+        selectCama.parentNode.appendChild(info);
+      }
+
+      clearInterval(intervalo);
+    }
+  }, 500);
+});
+
+function mostrarInfoCama(camaId) {
+  const info = document.getElementById("camaSugeridaInfo");
+  if (!info) return;
+
+  // Ejemplo simple (después lo mejoramos con lógica real)
+  let texto = "";
+
+  if (camaId.includes("mar")) {
+    texto = "🌊 Vista al mar — +20% valor";
+  } else if (camaId.includes("abajo")) {
+    texto = "🛏 Cama baja — más cómoda";
+  } else if (camaId.includes("arriba")) {
+    texto = "⬆️ Cama alta — precio más económico";
+  } else {
+    texto = "Cama estándar";
+  }
+
+  info.innerText = texto;
+}
