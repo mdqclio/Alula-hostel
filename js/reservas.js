@@ -1,4 +1,5 @@
 // ===================== RESERVAS =====================
+import { sugerirCama } from "./services/camas.service.js";
 import { DB } from './firebase-config.js';
 import { today, fmtMoney, platBadge, estadoBadge, pagoBadge, showNotif, openModal, closeModal, nightsBetween } from './helpers.js';
 import { getConfig, habBeds, camaLabel } from './config.js';
