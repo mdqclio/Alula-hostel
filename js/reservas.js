@@ -607,3 +607,31 @@ function mostrarInfoCama(camaId) {
 
   info.innerText = texto;
 }
+function calcularOcupacionGlobal() {
+  // después lo conectás a Firebase
+  return 65; // mock inicial
+}
+
+function obtenerCamasDisponibles() {
+  // MOCK inicial (después lo reemplazamos por Firebase real)
+  return [
+    { id: "1-abajo", tipo: "abajo", vistaMar: true },
+    { id: "2-arriba", tipo: "arriba", vistaMar: false },
+    { id: "3-abajo", tipo: "abajo", balcon: true }
+  ];
+}
+
+function mostrarInfoSugerida(cama, precio) {
+  let info = document.getElementById("camaSugeridaInfo");
+
+  if (!info) {
+    info = document.createElement("div");
+    info.id = "camaSugeridaInfo";
+    info.style.fontSize = "12px";
+    info.style.marginTop = "6px";
+    info.style.color = "var(--text3)";
+    document.getElementById("res-cama").parentNode.appendChild(info);
+  }
+
+  info.innerHTML = `🤖 Sugerida: ${cama.id} — $${precio} USD`;
+}
