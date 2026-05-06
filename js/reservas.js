@@ -1,5 +1,5 @@
 // ===================== RESERVAS =====================
-import { sugerirMejorCama, calcularPrecioCama } from "./services/camas.service.js";
+//import { sugerirMejorCama, calcularPrecioCama } from "./services/camas.service.js";
 import { sugerirCama } from "./services/camas.service.js";
 import { DB } from './firebase-config.js';
 import { today, fmtMoney, platBadge, estadoBadge, pagoBadge, showNotif, openModal, closeModal, nightsBetween } from './helpers.js';
