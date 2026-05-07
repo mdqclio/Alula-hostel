@@ -13,7 +13,7 @@ import {
   doCheckout, limpiarDuplicados,
   openCambioCama, updateCambioCamaSelect, saveCambioCama,
   openHorario, toggleHorarioCobro, saveHorario,
-  deleteReserva
+  deleteReserva, updateCamaInfo
 } from './reservas.js';
 import { renderCheckin } from './checkin.js';
 import {
@@ -44,7 +44,8 @@ import {
   addMetodoPago, deleteMetodoPago,
   addPlataforma, deletePlataforma,
   addMoneda, deleteMoneda,
-  addQuickReply, deleteQuickReply
+  addQuickReply, deleteQuickReply,
+  saveAllCamas, updateScorePreview
 } from './config-ui.js';
 import {
   toggleChatFloat, initChatbot, clearChat, sendChat, sendQuickReply,
@@ -82,7 +83,7 @@ Object.assign(window, {
   doCheckout, limpiarDuplicados,
   openCambioCama, updateCambioCamaSelect, saveCambioCama,
   openHorario, toggleHorarioCobro, toggleHorarioCobroToggle: toggleHorarioCobro,
-  saveHorario, deleteReserva,
+  saveHorario, deleteReserva, updateCamaInfo,
 
   // Check-in
   renderCheckin,
@@ -126,6 +127,7 @@ Object.assign(window, {
   addPlataforma, deletePlataforma,
   addMoneda, deleteMoneda,
   addQuickReply, deleteQuickReply,
+  saveAllCamas, updateScorePreview,
 
   // Chatbot
   toggleChatFloat, initChatbot, clearChat, sendChat, sendQuickReply,

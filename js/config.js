@@ -182,3 +182,25 @@ export function allBeds() {
   }
   return beds;
 }
+
+// ===== ATRIBUTOS DE CAMAS =====
+
+export const DEFAULT_CAMA_ATTRS = {
+  tipo:              'arriba',
+  vista:             'ninguna',
+  balcon:            false,
+  banoSuite:         false,
+  habitacionPremium: false,
+  ruido:             'medio',
+  cercaniaBano:      'normal',
+  scoreBase:         0,
+};
+
+export function getCamasConfig() {
+  return DB.get('camasConfig', {});
+}
+
+export function getCamaAttrs(camaId) {
+  const cfg = getCamasConfig();
+  return { ...DEFAULT_CAMA_ATTRS, ...(cfg[camaId] || {}) };
+}

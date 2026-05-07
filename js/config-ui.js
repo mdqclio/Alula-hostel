@@ -1,7 +1,8 @@
 // ===================== CONFIGURACIÓN =====================
 import { DB } from './firebase-config.js';
 import { showNotif, openModal, closeModal } from './helpers.js';
-import { getConfig, CONFIG_DEFAULTS, getTotalCamas, getCategorias, getCuentas, getMetodosPago, getPlataformas, getMonedas, getChatQuickReplies } from './config.js';
+import { getConfig, CONFIG_DEFAULTS, getTotalCamas, getCategorias, getCuentas, getMetodosPago, getPlataformas, getMonedas, getChatQuickReplies, getCamasConfig, getCamaAttrs, DEFAULT_CAMA_ATTRS, habBeds } from './config.js';
+import { calcularScoreCama } from './services/camas.service.js';
 import { logAuditoria } from './auditoria.js';
 
 const inp = 'background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:7px 10px;width:100%;font-size:13px;';
@@ -18,6 +19,7 @@ export function renderConfig() {
   const c = document.getElementById('configContent');
   c.innerHTML = `<div style="display:grid;gap:24px;">
     ${_sectionHostel()}
+    ${_sectionCamas()}
     ${_sectionTemporadas()}
     ${_sectionHorarios()}
     ${_sectionCategorias()}
@@ -640,4 +642,123 @@ export async function deleteQuickReply(idx) {
   await DB.set('config', stored);
   renderConfig();
   showNotif('Quick reply eliminado');
+}
+
+// ===== SECCIÓN CAMAS =====
+
+function _sectionCamas() {
+  const cfg = getConfig();
+  const camasCfg = getCamasConfig();
+
+  const todasCamas = [];
+  cfg.hostel.habitaciones.forEach(h => {
+    if (!h.activa || !h.camas) return;
+    habBeds(h.id).forEach(b => {
+      todasCamas.push({ ...b, habNombre: h.nombre, attrs: getCamaAttrs(b.id) });
+    });
+  });
+
+  if (!todasCamas.length) return `
+  <div class="card">
+    <div class="card-header"><h3>🛏 Atributos de Camas</h3></div>
+    <p style="padding:16px 20px;color:var(--text3)">Configurá primero las habitaciones activas.</p>
+  </div>`;
+
+  const selStyle = 'background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 6px;font-size:12px;width:100%;';
+  const numStyle = 'background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:4px 6px;font-size:12px;width:56px;text-align:center;';
+
+  const rows = todasCamas.map(c => {
+    const a = c.attrs;
+    const score = calcularScoreCama(a);
+    const sid = c.id;
+    const s = (name, val, opts) => `<select id="cama-${sid}-${name}" onchange="updateScorePreview('${sid}')" style="${selStyle}">
+      ${opts.map(([v, l]) => `<option value="${v}"${v === val ? ' selected' : ''}>${l}</option>`).join('')}
+    </select>`;
+    const chk = (name, val) => `<input type="checkbox" id="cama-${sid}-${name}"${val ? ' checked' : ''} onchange="updateScorePreview('${sid}')" style="width:16px;height:16px;cursor:pointer;">`;
+
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px 6px;white-space:nowrap;">
+        <strong style="font-size:13px;">Cama ${c.label}</strong>
+        <span style="display:block;font-size:11px;color:var(--text3);">${c.habNombre}</span>
+      </td>
+      <td style="padding:6px;">${s('tipo', a.tipo, [['abajo','Abajo'],['arriba','Arriba']])}</td>
+      <td style="padding:6px;">${s('vista', a.vista, [['ninguna','Ninguna'],['parcial','Parcial'],['mar','Al mar']])}</td>
+      <td style="padding:6px;text-align:center;">${chk('balcon', a.balcon)}</td>
+      <td style="padding:6px;text-align:center;">${chk('banoSuite', a.banoSuite)}</td>
+      <td style="padding:6px;text-align:center;">${chk('habitacionPremium', a.habitacionPremium)}</td>
+      <td style="padding:6px;">${s('ruido', a.ruido, [['bajo','Bajo'],['medio','Medio'],['alto','Alto']])}</td>
+      <td style="padding:6px;">${s('cercaniaBano', a.cercaniaBano, [['cerca','Cerca'],['normal','Normal'],['lejos','Lejos']])}</td>
+      <td style="padding:6px;text-align:center;">
+        <input type="number" id="cama-${sid}-scoreBase" value="${a.scoreBase}" min="-50" max="50"
+          onchange="updateScorePreview('${sid}')"
+          style="${numStyle}">
+      </td>
+      <td style="padding:6px;text-align:center;">
+        <strong id="score-preview-${sid}" style="color:var(--accent2);font-size:14px;">${score}</strong>
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="card">
+    <div class="card-header">
+      <h3>🛏 Atributos de Camas</h3>
+      <button class="btn btn-blue btn-sm" onclick="saveAllCamas()">Guardar cambios</button>
+    </div>
+    <div style="padding:12px 16px 16px;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:860px;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="text-align:left;padding:6px;color:var(--text3);font-size:11px;font-weight:500;">CAMA</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;">TIPO</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;">VISTA</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;text-align:center;">BALCÓN</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;text-align:center;">BAÑO SUITE</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;text-align:center;">PREMIUM</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;">RUIDO</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;">CERCANÍA BAÑO</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;text-align:center;">BASE</th>
+            <th style="padding:6px;color:var(--text3);font-size:11px;font-weight:500;text-align:center;">SCORE</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="margin-top:10px;font-size:11px;color:var(--text3);">Score máximo: 115 pts. El precio por noche aumenta hasta un 50% en la cama con score máximo.</p>
+    </div>
+  </div>`;
+}
+
+function _readCamaAttrs(camaId) {
+  const get = id => document.getElementById(`cama-${camaId}-${id}`);
+  return {
+    tipo:              get('tipo')?.value              || DEFAULT_CAMA_ATTRS.tipo,
+    vista:             get('vista')?.value             || DEFAULT_CAMA_ATTRS.vista,
+    balcon:            get('balcon')?.checked          ?? DEFAULT_CAMA_ATTRS.balcon,
+    banoSuite:         get('banoSuite')?.checked       ?? DEFAULT_CAMA_ATTRS.banoSuite,
+    habitacionPremium: get('habitacionPremium')?.checked ?? DEFAULT_CAMA_ATTRS.habitacionPremium,
+    ruido:             get('ruido')?.value             || DEFAULT_CAMA_ATTRS.ruido,
+    cercaniaBano:      get('cercaniaBano')?.value      || DEFAULT_CAMA_ATTRS.cercaniaBano,
+    scoreBase:         Number(get('scoreBase')?.value) || 0,
+  };
+}
+
+export function updateScorePreview(camaId) {
+  const attrs = _readCamaAttrs(camaId);
+  const score = calcularScoreCama(attrs);
+  const el = document.getElementById(`score-preview-${camaId}`);
+  if (el) el.textContent = score;
+}
+
+export async function saveAllCamas() {
+  const cfg = getConfig();
+  const camasCfg = {};
+  cfg.hostel.habitaciones.forEach(h => {
+    if (!h.activa || !h.camas) return;
+    habBeds(h.id).forEach(b => {
+      camasCfg[b.id] = _readCamaAttrs(b.id);
+    });
+  });
+  await DB.set('camasConfig', camasCfg);
+  logAuditoria('editar', 'config', 'camas', `Atributos de ${Object.keys(camasCfg).length} camas guardados`);
+  showNotif(`✅ Atributos de ${Object.keys(camasCfg).length} camas guardados`);
 }

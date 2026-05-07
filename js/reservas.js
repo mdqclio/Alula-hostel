@@ -1,9 +1,8 @@
 // ===================== RESERVAS =====================
-//import { sugerirMejorCama, calcularPrecioCama } from "./services/camas.service.js";
-import { sugerirCama } from "./services/camas.service.js";
+import { sugerirCama, calcularScoreCama, calcularOcupacionGlobal, calcularPrecioCama } from "./services/camas.service.js";
 import { DB } from './firebase-config.js';
 import { today, fmtMoney, platBadge, estadoBadge, pagoBadge, showNotif, openModal, closeModal, nightsBetween } from './helpers.js';
-import { getConfig, habBeds, camaLabel } from './config.js';
+import { getConfig, habBeds, camaLabel, getCamaAttrs, getTotalCamas, getTemporadaParaFecha } from './config.js';
 import { logAuditoria } from './auditoria.js';
 
 function getHuespedNombre(id) {
@@ -64,19 +63,11 @@ export function updateBedsSelect() {
   const salida = document.getElementById('res-salida').value;
 
   const sel = document.getElementById('res-cama');
-  function autoAsignarCama() {
-  const entrada = document.getElementById("res-entrada").value;
-  const salida = document.getElementById("res-salida").value;
-
-  if (!entrada || !salida) return;
-
-  const cama = sugerirCama(entrada, salida, window.camas, window.reservas);
-
-  if (!cama) return;
-
-  document.getElementById("res-cama").value = cama.id;
-}
-  if (!hab) { sel.innerHTML = '<option>Primero elegí habitación</option>'; return; }
+  if (!hab) {
+    sel.innerHTML = '<option>Primero elegí habitación</option>';
+    _clearCamaInfo();
+    return;
+  }
   const reservas = DB.get('reservas', []);
   const beds = habBeds(hab);
   sel.innerHTML = beds.map(b => {
@@ -100,23 +91,69 @@ export function updateBedsSelect() {
     }
     return `<option value="${b.id}" ${blocked ? 'disabled' : ''}>Cama ${b.label}${motivo}</option>`;
   }).join('');
+
+  if (entrada && salida) {
+    // Sugerir mejor cama disponible usando score real de atributos
+    const bedsWithAttrs = beds.map(b => ({ ...b, ...getCamaAttrs(b.id) }));
+    const sugerida = sugerirCama(entrada, salida, bedsWithAttrs, reservas);
+    if (sugerida) sel.value = sugerida.id;
+    _renderCamaInfo(sel.value, entrada, salida, reservas);
+  } else {
+    _clearCamaInfo();
+  }
 }
 
-// === SUGERENCIA AUTOMÁTICA ===
-const ocupacion = calcularOcupacionGlobal(); // la creamos abajo
+// Llamado cuando el usuario cambia manualmente la cama seleccionada.
+export function updateCamaInfo() {
+  const camaId = document.getElementById('res-cama').value;
+  const entrada = document.getElementById('res-entrada').value;
+  const salida = document.getElementById('res-salida').value;
+  const reservas = DB.get('reservas', []);
+  _renderCamaInfo(camaId, entrada, salida, reservas);
+}
 
-const camasDisponibles = obtenerCamasDisponibles(); // adaptás a tu lógica
+function _renderCamaInfo(camaId, entrada, salida, reservas) {
+  const infoEl = document.getElementById('res-cama-info');
+  if (!infoEl || !camaId || !entrada || !salida) { _clearCamaInfo(); return; }
 
-const sugerida = sugerirMejorCama(camasDisponibles, ocupacion);
+  const attrs = getCamaAttrs(camaId);
+  const score = calcularScoreCama(attrs);
+  const totalCamas = getTotalCamas();
+  const ocupacion = calcularOcupacionGlobal(entrada, salida, reservas, totalCamas);
 
-if (sugerida) {
-  const select = document.getElementById("res-cama");
-  select.value = sugerida.id;
+  const temporadaKey = getTemporadaParaFecha(entrada);
+  const temporada = getConfig().temporadas[temporadaKey];
+  const precioSugerido = calcularPrecioCama(attrs, ocupacion, temporada.precio);
 
-  const precio = calcularPrecioCama(sugerida, ocupacion);
-  document.getElementById("res-precio").value = precio;
+  const features = [];
+  if (attrs.tipo === 'abajo')          features.push('🛏 Cama baja');
+  if (attrs.tipo === 'arriba')         features.push('⬆️ Cama alta');
+  if (attrs.vista === 'mar')           features.push('🌊 Vista al mar');
+  if (attrs.vista === 'parcial')       features.push('🪟 Vista parcial');
+  if (attrs.balcon)                    features.push('🏖️ Balcón');
+  if (attrs.banoSuite)                 features.push('🚿 Baño suite');
+  if (attrs.habitacionPremium)         features.push('⭐ Premium');
+  if (attrs.ruido === 'bajo')          features.push('🔇 Silenciosa');
+  if (attrs.ruido === 'alto')          features.push('🔊 Con ruido');
+  if (attrs.cercaniaBano === 'cerca')  features.push('🚪 Baño cerca');
+  if (attrs.cercaniaBano === 'lejos')  features.push('🚶 Baño lejos');
 
-  mostrarInfoSugerida(sugerida, precio);
+  document.getElementById('res-cama-features').textContent =
+    features.length ? features.join(' · ') : 'Cama estándar';
+  document.getElementById('res-cama-score').textContent   = score + ' pts';
+  document.getElementById('res-cama-ocupacion').textContent = ocupacion + '%';
+  document.getElementById('res-cama-precio-sug').textContent =
+    fmtMoney(precioSugerido, temporada.moneda) + '/noche';
+
+  infoEl.style.display = 'flex';
+
+  document.getElementById('res-precio').value = precioSugerido;
+  calcTotalReserva();
+}
+
+function _clearCamaInfo() {
+  const el = document.getElementById('res-cama-info');
+  if (el) el.style.display = 'none';
 }
 
 
@@ -138,9 +175,15 @@ export function calcTotalReserva() {
 
 export function openNuevaReserva() {
   const huespedes = DB.get('huespedes', []);
-  const sel = document.getElementById('res-huesped');
-  sel.innerHTML = '<option value="">Seleccionar...</option>' +
+  document.getElementById('res-huesped').innerHTML = '<option value="">Seleccionar...</option>' +
     huespedes.map(h => `<option value="${h.id}">${h.nombre} ${h.apellido}</option>`).join('');
+
+  const habs = getConfig().hostel.habitaciones.filter(h => h.activa && h.camas > 0);
+  document.getElementById('res-hab').innerHTML = '<option value="">Seleccionar...</option>' +
+    habs.map(h => `<option value="${h.id}">${h.nombre}</option>`).join('');
+
+  document.getElementById('res-cama').innerHTML = '<option value="">Primero elegí fechas y habitación</option>';
+  _clearCamaInfo();
   openModal('modalReserva');
 }
 
@@ -558,80 +601,4 @@ export async function deleteReserva(id) {
   closeModal('modalConfirmDelete');
   renderReservas();
   showNotif('Reserva eliminada');
-}
-// === MEJORA: Hook automático para selector de cama ===
-document.addEventListener("DOMContentLoaded", () => {
-  const intervalo = setInterval(() => {
-    const selectCama = document.getElementById("res-cama");
-
-    if (selectCama && !selectCama.dataset.enhanced) {
-      selectCama.dataset.enhanced = "true";
-
-      // Evento cambio de cama
-      selectCama.addEventListener("change", () => {
-        mostrarInfoCama(selectCama.value);
-      });
-
-      // Crear bloque info si no existe
-      let info = document.getElementById("camaSugeridaInfo");
-      if (!info) {
-        info = document.createElement("div");
-        info.id = "camaSugeridaInfo";
-        info.style.fontSize = "12px";
-        info.style.marginTop = "6px";
-        info.style.color = "var(--text3)";
-        selectCama.parentNode.appendChild(info);
-      }
-
-      clearInterval(intervalo);
-    }
-  }, 500);
-});
-
-function mostrarInfoCama(camaId) {
-  const info = document.getElementById("camaSugeridaInfo");
-  if (!info) return;
-
-  // Ejemplo simple (después lo mejoramos con lógica real)
-  let texto = "";
-
-  if (camaId.includes("mar")) {
-    texto = "🌊 Vista al mar — +20% valor";
-  } else if (camaId.includes("abajo")) {
-    texto = "🛏 Cama baja — más cómoda";
-  } else if (camaId.includes("arriba")) {
-    texto = "⬆️ Cama alta — precio más económico";
-  } else {
-    texto = "Cama estándar";
-  }
-
-  info.innerText = texto;
-}
-function calcularOcupacionGlobal() {
-  // después lo conectás a Firebase
-  return 65; // mock inicial
-}
-
-function obtenerCamasDisponibles() {
-  // MOCK inicial (después lo reemplazamos por Firebase real)
-  return [
-    { id: "1-abajo", tipo: "abajo", vistaMar: true },
-    { id: "2-arriba", tipo: "arriba", vistaMar: false },
-    { id: "3-abajo", tipo: "abajo", balcon: true }
-  ];
-}
-
-function mostrarInfoSugerida(cama, precio) {
-  let info = document.getElementById("camaSugeridaInfo");
-
-  if (!info) {
-    info = document.createElement("div");
-    info.id = "camaSugeridaInfo";
-    info.style.fontSize = "12px";
-    info.style.marginTop = "6px";
-    info.style.color = "var(--text3)";
-    document.getElementById("res-cama").parentNode.appendChild(info);
-  }
-
-  info.innerHTML = `🤖 Sugerida: ${cama.id} — $${precio} USD`;
 }

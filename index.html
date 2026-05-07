@@ -460,16 +460,19 @@
       <div class="form-group"><label>Habitación *</label>
         <select id="res-hab" onchange="updateBedsSelect()">
           <option value="">Seleccionar...</option>
-          <option value="1">Habitación 1</option>
-          <option value="2">Habitación 2</option>
-          <option value="3">Habitación 3</option>
-          <option value="4">Habitación 4</option>
-          <option value="5">Habitación 5</option>
-          <option value="6">Habitación 6</option>
         </select>
       </div>
       <div class="form-group"><label>Cama *</label>
-        <select id="res-cama"><option value="">Primero elegí fechas y habitación</option></select>
+        <select id="res-cama" onchange="updateCamaInfo()"><option value="">Primero elegí fechas y habitación</option></select>
+      </div>
+    </div>
+    <!-- Info card: cama sugerida, score y precio dinámico -->
+    <div id="res-cama-info" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:12px;flex-direction:column;gap:6px;">
+      <div style="font-size:12px;color:var(--text2);" id="res-cama-features"></div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:12px;color:var(--text3);">Score: <strong id="res-cama-score" style="color:var(--accent2);">—</strong></span>
+        <span style="font-size:12px;color:var(--text3);">Ocupación hostel: <strong id="res-cama-ocupacion" style="color:var(--text);">—</strong></span>
+        <span style="font-size:12px;color:var(--text3);">💡 Precio sugerido: <strong id="res-cama-precio-sug" style="color:#60a5fa;">—</strong></span>
       </div>
     </div>
     <div class="form-row">
