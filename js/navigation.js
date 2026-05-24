@@ -20,12 +20,31 @@ export const sectionTitles = {
   historial: 'Historial de Cambios'
 };
 
+const _sectionCache = {};
+
 export async function showSection(s) {
-  document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+  // Sidebar: marcar item activo y cerrar la sidebar móvil
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('section-' + s)?.classList.add('active');
   document.getElementById('nav-' + s)?.classList.add('active');
+  closeSidebar();
   document.getElementById('pageTitle').textContent = sectionTitles[s] || s;
+
+  // Cargar el partial de la sección (cache en memoria; fetch solo la 1ª vez)
+  const main = document.getElementById('content');
+  if (!main) return;
+  if (!_sectionCache[s]) {
+    try {
+      const res = await fetch('sections/' + s + '.html');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      _sectionCache[s] = await res.text();
+    } catch (e) {
+      const { showNotif } = await import('./helpers.js');
+      showNotif('No se pudo cargar la sección: ' + s, 'error');
+      console.error('[showSection] fetch error:', e);
+      return;
+    }
+  }
+  main.innerHTML = _sectionCache[s];
 
   // Importaciones dinámicas para evitar ciclos
   if (s === 'dashboard') {

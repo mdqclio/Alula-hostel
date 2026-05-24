@@ -1,0 +1,38 @@
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="label">Camas ocupadas</div>
+    <div class="value" id="stat-occ">0/38</div>
+    <div class="sub" id="stat-occ-pct">0% ocupación</div>
+  </div>
+  <div class="stat-card green">
+    <div class="label">Ingresos hoy</div>
+    <div class="value" id="stat-today-income">$0</div>
+    <div class="sub" id="stat-today-income-usd">USD 0</div>
+  </div>
+  <div class="stat-card amber">
+    <div class="label">Check-in hoy</div>
+    <div class="value" id="stat-checkin-today">0</div>
+    <div class="sub">huéspedes esperados</div>
+  </div>
+  <div class="stat-card red">
+    <div class="label">Check-out hoy</div>
+    <div class="value" id="stat-checkout-today">0</div>
+    <div class="sub">huéspedes por salir</div>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div class="card">
+    <div class="card-header"><h3>Próximos Check-ins</h3></div>
+    <table>
+      <thead><tr><th>Huésped</th><th>Hab./Cama</th><th>Llegada</th><th>Plataforma</th></tr></thead>
+      <tbody id="dash-checkins"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Próximos Check-outs</h3></div>
+    <table>
+      <thead><tr><th>Huésped</th><th>Hab./Cama</th><th>Salida</th><th>Pago</th></tr></thead>
+      <tbody id="dash-checkouts"></tbody>
+    </table>
+  </div>
+</div>

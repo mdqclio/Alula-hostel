@@ -56,7 +56,7 @@ export function renderPrecios(tab) {
 }
 
 export function switchPricingTab(tab, el) {
-  document.querySelectorAll('#section-precios .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#content .tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   renderPrecios(tab);
 }

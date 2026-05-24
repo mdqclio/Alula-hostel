@@ -1,0 +1,13 @@
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+  <h2 style="font-size:20px;font-weight:600;">🧠 Base de Conocimiento — Alu</h2>
+</div>
+<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:20px;">
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px;">Esta información se inyecta automáticamente en cada conversación del chatbot Alu. Agregá datos sobre políticas, servicios especiales, eventos, respuestas frecuentes, o cualquier info que quieras que Alu conozca.</p>
+  <div style="display:flex;gap:10px;margin-bottom:10px;">
+    <input type="text" id="kb-nueva-entrada" placeholder="Ej: Los jueves hay descuento para grupos de más de 4 personas" style="flex:1;padding:10px 14px;background:var(--surface3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;">
+    <button class="btn btn-blue" onclick="saveKnowledgeEntry()">+ Agregar</button>
+  </div>
+</div>
+<div id="kb-lista" style="display:flex;flex-direction:column;gap:8px;">
+  <p style="color:var(--text3);font-size:13px;">Cargando...</p>
+</div>

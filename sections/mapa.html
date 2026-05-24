@@ -1,0 +1,19 @@
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+  <div class="beds-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(5,150,105,0.5)"></div>Libre</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(59,130,246,0.5)"></div>En hostel</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(13,148,136,0.5)"></div>Reservada</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(217,119,6,0.5)"></div>Sucia</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(220,38,38,0.4)"></div>Mantenimiento</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <button class="btn btn-ghost btn-sm" onclick="mapaNavegar(-7)">◀ 7d</button>
+    <button class="btn btn-ghost btn-sm" onclick="mapaNavegar(-1)">◀ 1d</button>
+    <button class="btn btn-blue btn-sm" onclick="mapaNavegar(0)">Hoy</button>
+    <button class="btn btn-ghost btn-sm" onclick="mapaNavegar(1)">1d ▶</button>
+    <button class="btn btn-ghost btn-sm" onclick="mapaNavegar(7)">7d ▶</button>
+    <span id="mapaFechaLabel" style="font-size:13px;color:var(--text2);font-family:'DM Mono';margin-left:4px;"></span>
+    <input type="hidden" id="mapaFecha">
+  </div>
+</div>
+<div class="rooms-grid" id="roomsGrid"></div>

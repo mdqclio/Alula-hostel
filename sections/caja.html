@@ -1,0 +1,34 @@
+<div class="stats-grid">
+  <div class="stat-card green"><div class="label">Ingresos del día</div><div class="value" id="caja-ingresos">$0</div><div class="sub" id="caja-ingresos-usd">USD 0</div></div>
+  <div class="stat-card red"><div class="label">Egresos del día</div><div class="value" id="caja-egresos">$0</div></div>
+  <div class="stat-card blue"><div class="label">Balance ARS</div><div class="value" id="caja-balance">$0</div></div>
+  <div class="stat-card amber"><div class="label">Balance USD</div><div class="value" id="caja-balance-usd">USD 0</div></div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+  <div class="card">
+    <div class="card-header">
+      <h3>Movimientos de hoy</h3>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="openTransferenciaModal()">🔄 Transferencia</button>
+        <button class="btn btn-blue btn-sm" onclick="openMovimientoModal()">+ Movimiento</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Hora</th><th>Concepto</th><th>Tipo</th><th>Monto</th><th>Método</th></tr></thead>
+      <tbody id="tablaCaja"></tbody>
+    </table>
+  </div>
+  <div class="card" style="padding:20px;">
+    <h3 style="margin-bottom:16px;font-size:15px;font-weight:600;">Cierre de Caja</h3>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Observaciones del día</label>
+      <textarea id="cajaObs" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:9px 12px;font-size:13px;resize:vertical;"></textarea>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Tipo de cambio USD del día</label>
+      <input type="number" id="cajaTipoCambio" value="1430" style="width:100%;">
+    </div>
+    <button class="btn btn-green" style="width:100%;" onclick="cerrarCaja()">Cerrar Caja del Día</button>
+    <div id="historialCierres" style="margin-top:16px;"></div>
+  </div>
+</div>

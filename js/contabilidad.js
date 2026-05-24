@@ -65,7 +65,7 @@ export function renderAcct(tab) {
 }
 
 export function switchAcctTab(tab, el) {
-  document.querySelectorAll('#section-contabilidad .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#content .tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
   renderAcct(tab);
 }

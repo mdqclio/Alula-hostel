@@ -1,0 +1,30 @@
+<div class="filters">
+  <input class="search-input" type="text" placeholder="🔍 Buscar reserva o huésped..." id="filterReserva" oninput="renderReservas()">
+  <select id="filterEstado" onchange="renderReservas()">
+    <option value="">Todos los estados</option>
+    <option value="confirmada">Confirmada</option>
+    <option value="checkin">En el hostel</option>
+    <option value="checkout">Check-out</option>
+    <option value="cancelada">Cancelada</option>
+  </select>
+  <select id="filterPlat" onchange="renderReservas()">
+    <option value="">Todas las plataformas</option>
+    <option value="directo">Directo</option>
+    <option value="booking">Booking.com</option>
+    <option value="airbnb">Airbnb</option>
+    <option value="otro">Otro</option>
+  </select>
+</div>
+<div class="card">
+  <div class="card-header">
+    <h3>Reservas</h3>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="limpiarDuplicados()" title="Elimina reservas duplicadas (misma cama y fechas)">🧹 Limpiar duplicados</button>
+      <button class="btn btn-blue btn-sm" onclick="openNuevaReserva()">+ Nueva reserva</button>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Huésped</th><th>Hab./Cama</th><th>Entrada</th><th>Salida</th><th>Noches</th><th>Total</th><th>Plataforma</th><th>Estado</th><th>Pago</th><th>Acción</th></tr></thead>
+    <tbody id="tablaReservas"></tbody>
+  </table>
+</div>

@@ -1,0 +1,16 @@
+<div class="filters">
+  <input class="search-input" type="text" placeholder="🔍 Buscar huésped..." id="filterHuesped" oninput="renderHuespedes()">
+</div>
+<div class="card">
+  <div class="card-header">
+    <h3>Huéspedes registrados</h3>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-ghost btn-sm" onclick="showPublicFormLink()">🔗 Link auto-registro</button>
+      <button class="btn btn-blue btn-sm" onclick="openModal('modalHuesped')">+ Nuevo huésped</button>
+    </div>
+  </div>
+  <table>
+    <thead><tr><th>Nombre</th><th>DNI/Pasaporte</th><th>Nac.</th><th>Teléfono</th><th>Email</th><th>Estadías</th><th>Score</th><th>Acciones</th></tr></thead>
+    <tbody id="tablaHuespedes"></tbody>
+  </table>
+</div>
