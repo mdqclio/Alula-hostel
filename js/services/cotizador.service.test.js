@@ -19,8 +19,8 @@ const camasConfig4 = {
 };
 
 const base4 = {
-  entrada: '2026-02-10',
-  salida: '2026-02-13', // 3 noches
+  entrada: '2027-02-10',
+  salida: '2027-02-13', // 3 noches
   reservas: [],
   camasConfig: camasConfig4,
   habitaciones: [hab('1', 4)],
@@ -32,13 +32,20 @@ describe('cotizar — validación de fechas', () => {
   it('1. fechas inválidas → ok:false, error fechas_invalidas', () => {
     expect(cotizar({ ...base4, entrada: 'no-date' }).error).toBe('fechas_invalidas');
     expect(cotizar({ ...base4, salida: '2026-13-40' }).error).toBe('fechas_invalidas');
-    expect(cotizar({ ...base4, entrada: '2026-02-30' }).error).toBe('fechas_invalidas'); // día inexistente
+    expect(cotizar({ ...base4, entrada: '2027-02-30' }).error).toBe('fechas_invalidas'); // día inexistente
     expect(cotizar({}).error).toBe('fechas_invalidas');
   });
 
   it('2. salida <= entrada → ok:false, error fechas_invertidas', () => {
-    expect(cotizar({ ...base4, salida: '2026-02-10' }).error).toBe('fechas_invertidas'); // igual
-    expect(cotizar({ ...base4, entrada: '2026-02-13', salida: '2026-02-10' }).error).toBe('fechas_invertidas');
+    expect(cotizar({ ...base4, salida: '2027-02-10' }).error).toBe('fechas_invertidas'); // igual
+    expect(cotizar({ ...base4, entrada: '2027-02-13', salida: '2027-02-10' }).error).toBe('fechas_invertidas');
+  });
+
+  it('2b. entrada en el pasado → ok:false, error fechas_pasadas', () => {
+    const r = cotizar({ ...base4, entrada: '2020-01-01', salida: '2020-01-04' });
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('fechas_pasadas');
+    expect(r.mensaje).toMatch(/pasado/i);
   });
 });
 
@@ -67,7 +74,7 @@ describe('cotizar — caso OK base', () => {
 describe('cotizar — disponibilidad', () => {
   it('4. todas las camas reservadas en el rango → ok:false, error sin_camas', () => {
     const reservas = ['1-1', '1-2', '1-3', '1-4'].map(cama => ({
-      cama, estado: 'confirmada', entrada: '2026-02-08', salida: '2026-02-20',
+      cama, estado: 'confirmada', entrada: '2027-02-08', salida: '2027-02-20',
     }));
     const r = cotizar({ ...base4, reservas });
     expect(r.ok).toBe(false);
@@ -76,7 +83,7 @@ describe('cotizar — disponibilidad', () => {
   });
 
   it('5. algunas reservadas → solo las libres aparecen en camas', () => {
-    const reservas = [{ cama: '1-2', estado: 'confirmada', entrada: '2026-02-08', salida: '2026-02-20' }];
+    const reservas = [{ cama: '1-2', estado: 'confirmada', entrada: '2027-02-08', salida: '2027-02-20' }];
     const r = cotizar({ ...base4, reservas });
     expect(r.ok).toBe(true);
     expect(r.camas.map(c => c.camaId).sort()).toEqual(['1-1', '1-3', '1-4']);
@@ -85,8 +92,8 @@ describe('cotizar — disponibilidad', () => {
 
   it('5b. reserva en checkout/cancelada NO bloquea (se ignora)', () => {
     const reservas = [
-      { cama: '1-1', estado: 'checkout', entrada: '2026-02-08', salida: '2026-02-20' },
-      { cama: '1-2', estado: 'cancelada', entrada: '2026-02-08', salida: '2026-02-20' },
+      { cama: '1-1', estado: 'checkout', entrada: '2027-02-08', salida: '2027-02-20' },
+      { cama: '1-2', estado: 'cancelada', entrada: '2027-02-08', salida: '2027-02-20' },
     ];
     const r = cotizar({ ...base4, reservas });
     expect(r.camas).toHaveLength(4); // ninguna bloqueada
@@ -111,7 +118,7 @@ describe('cotizar — temporadas y precios', () => {
   });
 
   it('7. temporada alta vs baja → precioBase distinto para el mismo rango', () => {
-    const periodoFeb = [{ tipo: 'especifico', desde: '2026-02-01', hasta: '2026-02-28' }];
+    const periodoFeb = [{ tipo: 'especifico', desde: '2027-02-01', hasta: '2027-02-28' }];
     const tAlta = { alta: { precio: 35000, moneda: 'ARS', periodos: periodoFeb }, media: { precio: 27000, periodos: [] }, baja: { precio: 22000, periodos: [] } };
     const tBaja = { alta: { precio: 35000, periodos: [] }, media: { precio: 27000, periodos: [] }, baja: { precio: 22000, moneda: 'ARS', periodos: periodoFeb } };
     const rAlta = cotizar({ ...base4, temporadas: tAlta });
@@ -203,8 +210,8 @@ describe('cotizar — cantidadCamas (opción A)', () => {
 
   it('b. piden 3, hay 2 disponibles → sin_camas con mensaje correcto', () => {
     const reservas = [
-      { cama: '1-1', estado: 'confirmada', entrada: '2026-02-08', salida: '2026-02-20' },
-      { cama: '1-2', estado: 'confirmada', entrada: '2026-02-08', salida: '2026-02-20' },
+      { cama: '1-1', estado: 'confirmada', entrada: '2027-02-08', salida: '2027-02-20' },
+      { cama: '1-2', estado: 'confirmada', entrada: '2027-02-08', salida: '2027-02-20' },
     ];
     const r = cotizar({ ...base4, cantidadCamas: 3, reservas });
     expect(r.ok).toBe(false);
@@ -214,7 +221,7 @@ describe('cotizar — cantidadCamas (opción A)', () => {
 
   it('c. piden 1 (default), hay 0 disponibles → sin_camas (regresión del caso original)', () => {
     const reservas = ['1-1', '1-2', '1-3', '1-4'].map(cama => ({
-      cama, estado: 'confirmada', entrada: '2026-02-08', salida: '2026-02-20',
+      cama, estado: 'confirmada', entrada: '2027-02-08', salida: '2027-02-20',
     }));
     const r = cotizar({ ...base4, reservas }); // cantidadCamas default = 1
     expect(r.ok).toBe(false);

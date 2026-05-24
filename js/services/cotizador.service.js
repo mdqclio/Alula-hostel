@@ -106,6 +106,10 @@ export function cotizar({
   if (salida <= entrada) {
     return { ok: false, error: 'fechas_invertidas', mensaje: 'La fecha de salida debe ser posterior a la de entrada.' };
   }
+  const hoy = new Date().toISOString().slice(0, 10);
+  if (entrada < hoy) {
+    return { ok: false, error: 'fechas_pasadas', mensaje: 'La fecha de entrada no puede ser en el pasado.' };
+  }
 
   const noches = nightsBetween(entrada, salida);
   const reservasArr = Array.isArray(reservas) ? reservas : [];

@@ -67,9 +67,10 @@ Forma resumida:
 
 ```jsonc
 // errores de negocio (todavía HTTP 200)
-{ "ok": false, "error": "fechas_invalidas", "mensaje": "..." }
+{ "ok": false, "error": "fechas_invalidas",  "mensaje": "..." }
 { "ok": false, "error": "fechas_invertidas", "mensaje": "..." }
-{ "ok": false, "error": "sin_camas", "mensaje": "Pediste N camas, solo hay M disponibles" }
+{ "ok": false, "error": "fechas_pasadas",    "mensaje": "La fecha de entrada no puede ser en el pasado." }
+{ "ok": false, "error": "sin_camas",         "mensaje": "Pediste N camas, solo hay M disponibles" }
 ```
 
 ## Códigos HTTP
