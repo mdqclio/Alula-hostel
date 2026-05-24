@@ -1,5 +1,5 @@
 // ===================== AUTH =====================
-import { auth, DB, loadAllData } from './firebase-config.js';
+import { auth, db, DB, loadAllData } from './firebase-config.js';
 import { signInWithEmailAndPassword, signOut, updatePassword, EmailAuthProvider, reauthenticateWithCredential, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import { showNotif, openModal, closeModal } from './helpers.js';
 import { CONFIG_DEFAULTS } from './config.js';
@@ -40,11 +40,30 @@ export function showLoginError(msg, color = '#f87171') {
   if (color !== '#60a5fa') setTimeout(() => err.textContent = '', 3500);
 }
 
+// Marca/desmarca al usuario en alula/admins/<uid>. Las reglas endurecidas
+// determinan "admin" leyendo root.child('alula/admins/'+auth.uid) (los arrays
+// no se pueden iterar desde reglas). Es self-perpetuating: cada admin que entra
+// refresca su propia flag. Best-effort (fire-and-forget): un fallo de permisos
+// no rompe el login. Bootstrap del primer admin: docs/migrate-admins-instructions.md.
+async function syncAdminFlag(uid, isAdmin) {
+  if (!uid) return;
+  try {
+    const { ref, set, remove } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js");
+    const aref = ref(db, 'alula/admins/' + uid);
+    if (isAdmin) await set(aref, true);
+    else await remove(aref);
+  } catch (e) {
+    console.warn('[syncAdminFlag] no se pudo sincronizar admin flag:', e?.message || e);
+  }
+}
+
 export function applyRoleUI(rolKey, rolObj) {
   const isAdmin = rolKey === 'admin' || (rolObj && rolObj.permisos && rolObj.permisos.roles === 'rw');
   document.getElementById('nav-listanegra')?.style && (document.getElementById('nav-listanegra').style.display = isAdmin ? '' : 'none');
   const adminEls = document.querySelectorAll('.admin-only');
   adminEls.forEach(el => el.style.display = isAdmin ? '' : 'none');
+  // Sincroniza la flag de admin para las reglas (no se espera: background).
+  syncAdminFlag(auth.currentUser?.uid, isAdmin);
 }
 
 export async function doLogin() {
