@@ -12,7 +12,8 @@
     "FOLLOW-UP 8: per-rol no se aplica a nivel de reglas (limpieza/ventas read-only es solo cosmetico en la UI; via consola cualquier autenticado escribe). Para enforcement real se necesitan Custom Claims o reestructurar por uid. Documentado, no resuelto aqui.",
     "FOLLOW-UP 9: escritura publica a preRegistros es susceptible de spam/DoS (un anonimo puede pushear muchos registros). Activar Firebase App Check y/o limitar tamano. La validacion ya acota foto a 2.000.000 chars y rechaza campos extra.",
     "FOLLOW-UP 10: fotos en base64 dentro de RTDB inflan el arbol y encarecen toda lectura. Migrar 'foto' a Cloud Storage y guardar solo la URL.",
-    "FOLLOW-UP 11: el seeding de roles/config (initData) hace DB.set en el primer login. Con roles/config write solo-admin, sembrar estando autenticado como admin (o abrir reglas temporalmente la primera vez)."
+    "FOLLOW-UP 11: el seeding de roles/config (initData) hace DB.set en el primer login. Con roles/config write solo-admin, sembrar estando autenticado como admin (o abrir reglas temporalmente la primera vez).",
+    "FOLLOW-UP 12 (groqApiKey): el front (rama chore/restrict-groq-api-key) movio la API key de Groq de 'alula/config' (legible por cualquier autenticado) a 'alula/secrets', que aqui queda read/write SOLO-ADMIN. Migracion del dato existente: docs/migrate-groq-key-instructions.md. No deployar estas reglas hasta migrar la key y completar los cambios de front de la Tarea 6, o el chatbot/OCR se queda sin key."
   ],
   "rules": {
     "alula": {
@@ -75,6 +76,11 @@
 
       "config": {
         ".read": "auth != null",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
+      },
+
+      "secrets": {
+        ".read":  "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
         ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
       },
 
