@@ -90,7 +90,7 @@ export async function doLogin() {
 }
 
 export async function doLogout() {
-  logAuditoria('logout', 'usuario', currentUser.value?.id || null, `Logout: ${currentUser.value?.name || '—'}`);
+  await logAuditoria('logout', 'usuario', currentUser.value?.id || null, `Logout: ${currentUser.value?.name || '—'}`);
   await signOut(auth);
   currentUser.value = null;
   document.getElementById('loginScreen').style.display = 'flex';

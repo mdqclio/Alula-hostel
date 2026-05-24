@@ -7,7 +7,6 @@ export const sectionTitles = {
   reservas: 'Reservas',
   checkin: 'Check-In / Check-Out',
   huespedes: 'Huéspedes',
-  precios: 'Gestión de Precios',
   grilla: 'Grilla de Reservas',
   listanegra: 'Lista Negra',
   contabilidad: 'Contabilidad',
@@ -75,10 +74,6 @@ export async function showSection(s) {
   if (s === 'huespedes') {
     const { renderHuespedes } = await import('./huespedes.js');
     loadAllData().then(() => renderHuespedes());
-  }
-  if (s === 'precios') {
-    const { renderPrecios } = await import('./precios.js');
-    renderPrecios('temporada');
   }
   if (s === 'contabilidad') {
     const { renderAcct } = await import('./contabilidad.js');
