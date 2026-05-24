@@ -44,9 +44,9 @@ export let lastChatTime = 0;
 
 export async function loadApiKeyFromFirebase() {
   try {
-    const config = DB.get('config', {});
-    if (config.groqApiKey && !chatApiKey) {
-      chatApiKey = config.groqApiKey;
+    const secrets = DB.get('secrets', {});
+    if (secrets.groqApiKey && !chatApiKey) {
+      chatApiKey = secrets.groqApiKey;
       localStorage.setItem('alula_groq_key', chatApiKey);
     }
   } catch(e) { /* silencioso */ }
@@ -87,9 +87,9 @@ export async function saveApiKey() {
   if (!key) { showNotif('Ingresá la API key', 'error'); return; }
   chatApiKey = key;
   localStorage.setItem('alula_groq_key', key);
-  const config = DB.get('config', {});
-  config.groqApiKey = key;
-  await DB.set('config', config);
+  const secrets = DB.get('secrets', {});
+  secrets.groqApiKey = key;
+  await DB.set('secrets', secrets);
   document.getElementById('chatApiWarning').style.display = 'none';
   showNotif('✅ API key guardada para todos los usuarios');
 }

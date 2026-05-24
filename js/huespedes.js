@@ -239,7 +239,7 @@ export async function runOCR(formContext) {
     showNotif('Primero subí la foto del documento', 'error');
     return;
   }
-  const apiKey = DB.get('config', {}).groqApiKey;
+  const apiKey = DB.get('secrets', {}).groqApiKey;
   if (!apiKey) {
     showNotif('No hay API key de Groq. Configurala en el chatbot primero.', 'error');
     return;
