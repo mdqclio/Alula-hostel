@@ -90,8 +90,8 @@ function tierFor(idx, n) {
 export function cotizar({
   entrada,
   salida,
-  // Aceptado por compatibilidad de API (futuras reservas multi-cama). En esta
-  // fase cada cama se cotiza individualmente, así que no afecta el cálculo.
+  // Mínimo de camas que deben estar disponibles en el rango. Si hay menos,
+  // se devuelve error 'sin_camas'. Default 1 (preserva el caso de 0 disponibles).
   cantidadCamas = 1,
   reservas = [],
   camasConfig = {},
@@ -146,8 +146,12 @@ export function cotizar({
     });
   }
 
-  if (disponibles.length === 0) {
-    return { ok: false, error: 'sin_camas', mensaje: 'No hay camas disponibles para el rango solicitado.' };
+  if (disponibles.length < cantidadCamas) {
+    return {
+      ok: false,
+      error: 'sin_camas',
+      mensaje: `Pediste ${cantidadCamas} camas, solo hay ${disponibles.length} disponibles`,
+    };
   }
 
   // 4) Orden por precioTotal asc (tie-break determinista por camaId) + tiers

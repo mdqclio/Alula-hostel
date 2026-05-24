@@ -193,3 +193,31 @@ describe('cotizar — forma de la respuesta', () => {
     expect(c.disponible).toBe(true);
   });
 });
+
+describe('cotizar — cantidadCamas (opción A)', () => {
+  it('a. piden 3, hay 5 disponibles → ok (devuelve todas las disponibles)', () => {
+    const r = cotizar({ ...base4, habitaciones: [hab('1', 5)], camasConfig: {}, cantidadCamas: 3 });
+    expect(r.ok).toBe(true);
+    expect(r.camas).toHaveLength(5);
+  });
+
+  it('b. piden 3, hay 2 disponibles → sin_camas con mensaje correcto', () => {
+    const reservas = [
+      { cama: '1-1', estado: 'confirmada', entrada: '2026-02-08', salida: '2026-02-20' },
+      { cama: '1-2', estado: 'confirmada', entrada: '2026-02-08', salida: '2026-02-20' },
+    ];
+    const r = cotizar({ ...base4, cantidadCamas: 3, reservas });
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('sin_camas');
+    expect(r.mensaje).toBe('Pediste 3 camas, solo hay 2 disponibles');
+  });
+
+  it('c. piden 1 (default), hay 0 disponibles → sin_camas (regresión del caso original)', () => {
+    const reservas = ['1-1', '1-2', '1-3', '1-4'].map(cama => ({
+      cama, estado: 'confirmada', entrada: '2026-02-08', salida: '2026-02-20',
+    }));
+    const r = cotizar({ ...base4, reservas }); // cantidadCamas default = 1
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('sin_camas');
+  });
+});
