@@ -1,6 +1,6 @@
 // ===================== CAJA DIARIA =====================
 import { DB } from './firebase-config.js';
-import { today, fmtMoney, showNotif, openModal, closeModal } from './helpers.js';
+import { closeModal, escapeHtml, fmtMoney, openModal, showNotif, today } from './helpers.js';
 import { getCuentas, getCategorias } from './config.js';
 import { logAuditoria } from './auditoria.js';
 

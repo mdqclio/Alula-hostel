@@ -1,6 +1,6 @@
 // ===================== CONTABILIDAD =====================
 import { DB } from './firebase-config.js';
-import { fmtMoney, openModal, showNotif, today } from './helpers.js';
+import { escapeHtml, fmtMoney, openModal, showNotif, today } from './helpers.js';
 import { getCuentas, getCategorias } from './config.js';
 
 function getCuentaNombre(id) {

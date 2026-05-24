@@ -1,7 +1,7 @@
 // ===================== RESERVAS =====================
 import { sugerirCama, calcularScoreCama, calcularOcupacionGlobal, calcularPrecioCama } from "./services/camas.service.js";
 import { DB } from './firebase-config.js';
-import { today, fmtMoney, platBadge, estadoBadge, pagoBadge, showNotif, openModal, closeModal, nightsBetween } from './helpers.js';
+import { closeModal, escapeHtml, estadoBadge, fmtMoney, nightsBetween, openModal, pagoBadge, platBadge, showNotif, today } from './helpers.js';
 import { getConfig, habBeds, camaLabel, getCamaAttrs, getTotalCamas, getTemporadaParaFecha } from './config.js';
 import { logAuditoria } from './auditoria.js';
 
