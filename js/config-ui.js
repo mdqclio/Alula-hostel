@@ -353,6 +353,7 @@ export async function addPeriodo(tipo) {
   if (!stored.temporadas[tipo].periodos) stored.temporadas[tipo].periodos = [];
   stored.temporadas[tipo].periodos.push({ id: 'p' + Date.now(), tipo: tipoP, nombre, desde, hasta });
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'periodos', `Config periodos actualizada: período "${nombre}" agregado`);
   renderConfig();
   showNotif(`Período "${nombre}" agregado`);
 }
@@ -362,6 +363,7 @@ export async function deletePeriodo(tipo, pid) {
   if (stored.temporadas?.[tipo]?.periodos) {
     stored.temporadas[tipo].periodos = stored.temporadas[tipo].periodos.filter(p => p.id !== pid);
     await DB.set('config', stored);
+    await logAuditoria('editar', 'config', 'periodos', 'Config periodos actualizada: período eliminado');
   }
   renderConfig();
   showNotif('Período eliminado');
@@ -392,6 +394,7 @@ export async function addHabitacion() {
   const habitaciones = [...cfg.hostel.habitaciones, { id: newId, nombre: `Habitación ${newId}`, camas: 6, activa: true, nota: '' }];
   stored.hostel = { nombre: cfg.hostel.nombre, habitaciones };
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'habitaciones', 'Config habitaciones actualizada: habitación agregada');
   renderConfig();
   showNotif('Habitación agregada');
 }
@@ -407,6 +410,7 @@ export function removeHabitacion(i) {
     const habitaciones = cfg.hostel.habitaciones.filter((_, idx) => idx !== i);
     stored.hostel = { nombre: cfg.hostel.nombre, habitaciones };
     await DB.set('config', stored);
+    await logAuditoria('editar', 'config', 'habitaciones', `Config habitaciones actualizada: "${nombre}" eliminada`);
     closeModal('modalConfirmDelete');
     renderConfig();
     showNotif('Habitación eliminada');
@@ -468,6 +472,7 @@ export async function deleteCategoriaContable(tipo, idx) {
   lista.splice(idx, 1);
   stored.categorias[tipo] = lista;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', `categoria-${tipo}`, `Config categorías actualizada: categoría eliminada en ${tipo}`);
   renderConfig();
   showNotif('Categoría eliminada');
 }
@@ -554,6 +559,7 @@ export async function addMetodoPago() {
   metodos.push({ id, nombre });
   stored.metodosPago = metodos;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'metodosPago', `Config metodosPago actualizada: "${nombre}" agregado`);
   renderConfig();
   showNotif(`Método "${nombre}" agregado`);
 }
@@ -564,6 +570,7 @@ export async function deleteMetodoPago(idx) {
   metodos.splice(idx, 1);
   stored.metodosPago = metodos;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'metodosPago', 'Config metodosPago actualizada: método eliminado');
   renderConfig();
   showNotif('Método eliminado');
 }
@@ -579,6 +586,7 @@ export async function addPlataforma() {
   plats.push({ id, nombre });
   stored.plataformas = plats;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'plataformas', `Config plataformas actualizada: "${nombre}" agregada`);
   renderConfig();
   showNotif(`Plataforma "${nombre}" agregada`);
 }
@@ -589,6 +597,7 @@ export async function deletePlataforma(idx) {
   plats.splice(idx, 1);
   stored.plataformas = plats;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'plataformas', 'Config plataformas actualizada: plataforma eliminada');
   renderConfig();
   showNotif('Plataforma eliminada');
 }
@@ -605,6 +614,7 @@ export async function addMoneda() {
   monedas.push({ code, symbol, nombre });
   stored.monedas = monedas;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'monedas', `Config monedas actualizada: "${code}" agregada`);
   renderConfig();
   showNotif(`Moneda "${code}" agregada`);
 }
@@ -616,6 +626,7 @@ export async function deleteMoneda(idx) {
   monedas.splice(idx, 1);
   stored.monedas = monedas;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'monedas', 'Config monedas actualizada: moneda eliminada');
   renderConfig();
   showNotif('Moneda eliminada');
 }
@@ -630,6 +641,7 @@ export async function addQuickReply() {
   qr.push({ label, msg });
   stored.chatQuickReplies = qr;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'quickReplies', 'Config quickReplies actualizada: quick reply agregado');
   renderConfig();
   showNotif('Quick reply agregado');
 }
@@ -640,6 +652,7 @@ export async function deleteQuickReply(idx) {
   qr.splice(idx, 1);
   stored.chatQuickReplies = qr;
   await DB.set('config', stored);
+  await logAuditoria('editar', 'config', 'quickReplies', 'Config quickReplies actualizada: quick reply eliminado');
   renderConfig();
   showNotif('Quick reply eliminado');
 }

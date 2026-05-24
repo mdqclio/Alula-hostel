@@ -408,6 +408,7 @@ export async function submitPublicRegistration() {
       estadias: 0, pendiente: true
     });
     await DB.set('huespedes', huespedes);
+    await logAuditoria('crear', 'huesped', huespedes[huespedes.length - 1].id, `Pre-registro público: ${nombre} ${apellido}`, null, null);
     msg.style.color = '#34d399';
     msg.textContent = '✅ ¡Datos enviados! El equipo del hostel los confirmará pronto.';
     document.querySelectorAll('#loginScreen input, #loginScreen select').forEach(i => { if (i.type !== 'file') i.value = ''; });
