@@ -1,0 +1,40 @@
+{
+  "name": "Alula Hostel Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [8080, 8931],
+  "portsAttributes": {
+    "8080": {
+      "label": "Alula (servidor estático)",
+      "onAutoForward": "openBrowserOnce"
+    },
+    "8931": {
+      "label": "Playwright MCP (HTTP, opcional)",
+      "onAutoForward": "silent"
+    }
+  },
+  "containerEnv": {
+    "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+    "FIREBASE_TOKEN": "${localEnv:FIREBASE_TOKEN}"
+  },
+  "remoteUser": "node",
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "toba.vsfire",
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "ms-playwright.playwright"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "files.eol": "\n",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
