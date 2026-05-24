@@ -130,13 +130,8 @@ export async function saveChangePassword() {
     const credential = EmailAuthProvider.credential(user.email, actual);
     await reauthenticateWithCredential(user, credential);
 
-    // Cambiar contraseña en Firebase Auth
+    // Cambiar contraseña en Firebase Auth (única fuente de verdad — no se persiste en la DB)
     await updatePassword(user, nueva);
-
-    // Actualizar en la colección de usuarios (campo pass)
-    const usuarios = DB.get('usuarios', []);
-    const u = usuarios.find(x => x.email.toLowerCase() === user.email.toLowerCase());
-    if (u) { u.pass = nueva; await DB.set('usuarios', usuarios); }
 
     logAuditoria('editar', 'usuario', currentUser.value?.id || null, 'Cambió su contraseña');
 

@@ -179,7 +179,7 @@ export async function saveUsuario() {
     if (pass) {
       if (pass.length < 6) { showNotif('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
       if (pass !== pass2) { showNotif('Las contraseñas no coinciden', 'error'); return; }
-      u.pass = pass;
+      // Password gestionado por Firebase Auth — no se guarda en la DB (ver overnight report)
       if (auth.currentUser && auth.currentUser.email.toLowerCase() === email.toLowerCase()) {
         try { await updatePassword(auth.currentUser, pass); } catch(e) { console.warn('No se pudo actualizar pass en Auth:', e); }
       }
@@ -193,7 +193,7 @@ export async function saveUsuario() {
     if (pass !== pass2) { showNotif('Las contraseñas no coinciden', 'error'); return; }
     try {
       await createUserWithEmailAndPassword(auth, email, pass);
-      const nuevoU = { id: 'u' + Date.now(), nombre, email, rol, estado, pass, ultimoAcceso: null };
+      const nuevoU = { id: 'u' + Date.now(), nombre, email, rol, estado, ultimoAcceso: null };
       usuarios.push(nuevoU);
       await DB.set('usuarios', usuarios);
       logAuditoria('crear', 'usuario', nuevoU.id, `Usuario creado: ${nombre} (${email}) — rol ${rol}`);
