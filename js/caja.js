@@ -150,7 +150,7 @@ export function saveMovimiento() {
   showNotif('Movimiento registrado');
 }
 
-export function cerrarCaja() {
+export async function cerrarCaja() {
   const tod = today();
   const movs = DB.get('movimientos', []).filter(m => m.fecha === tod);
   const ingARS = movs.filter(m => m.tipo === 'ingreso' && m.moneda === 'ARS').reduce((a, b) => a + Number(b.monto), 0);
@@ -165,6 +165,7 @@ export function cerrarCaja() {
     obs: document.getElementById('cajaObs').value
   });
   DB.set('cierres', cierres);
+  await logAuditoria('crear', 'cierre', tod, `Cierre de caja ${tod}: balance ARS ${ingARS - egARS}, USD ${ingUSD}`, null, { fecha: tod, balanceARS: ingARS - egARS, balanceUSD: ingUSD });
   renderCaja();
   showNotif('✅ Caja cerrada correctamente');
 }

@@ -1,6 +1,7 @@
 // ===================== BASE DE CONOCIMIENTO ALU =====================
 import { DB } from './firebase-config.js';
 import { today, showNotif, escapeHtml } from './helpers.js';
+import { logAuditoria } from './auditoria.js';
 
 export function renderKnowledge() {
   const items = DB.get('aluKnowledge', []);
@@ -52,9 +53,11 @@ export async function saveEditKnowledge(idx) {
   const nuevo = document.getElementById('kb-edit-' + idx).value.trim();
   if (!nuevo) { showNotif('El texto no puede estar vacío', 'error'); return; }
   const items = DB.get('aluKnowledge', []);
+  const _antes = items[idx]?.texto;
   items[idx].texto = nuevo;
   items[idx].fecha = today();
   await DB.set('aluKnowledge', items);
+  await logAuditoria('editar', 'knowledge', idx, 'Entrada knowledge editada', { texto: _antes }, { texto: nuevo });
   renderKnowledge();
   showNotif('✅ Entrada actualizada');
 }
@@ -66,6 +69,7 @@ export async function saveKnowledgeEntry() {
   const items = DB.get('aluKnowledge', []);
   items.push({ texto, fecha: today() });
   await DB.set('aluKnowledge', items);
+  await logAuditoria('crear', 'knowledge', items.length - 1, `Entrada knowledge agregada: ${texto.slice(0, 60)}`, null, { texto });
   input.value = '';
   renderKnowledge();
   showNotif('✅ Entrada agregada a la base de conocimiento');
@@ -73,8 +77,10 @@ export async function saveKnowledgeEntry() {
 
 export async function deleteKnowledgeEntry(idx) {
   const items = DB.get('aluKnowledge', []);
+  const _eliminado = items[idx]?.texto;
   items.splice(idx, 1);
   await DB.set('aluKnowledge', items);
+  await logAuditoria('eliminar', 'knowledge', idx, `Entrada eliminada: ${(_eliminado || '').slice(0, 60)}`, { texto: _eliminado }, null);
   renderKnowledge();
   showNotif('Entrada eliminada');
 }
