@@ -1,0 +1,92 @@
+{
+  "__notas": [
+    "REGLAS PROPUESTAS (endurecidas) para Realtime Database de alula-hostel. Estado: BORRADOR, NO desplegado.",
+    "IMPORTANTE para deploy: RTDB solo acepta la clave 'rules' en el archivo. Antes de desplegar hay que ELIMINAR este bloque '__notas' (o moverlo a comentarios // en un database.rules.json, que la CLI sí tolera). Este JSON con __notas NO es desplegable tal cual.",
+    "FOLLOW-UP 1 (bloqueante): el front hoy hace loadAllData() => get(ref(db,'alula')), que lee el nodo 'alula' COMPLETO. Con estas reglas 'alula' tiene .read:false, asi que esa lectura masiva DEJA DE FUNCIONAR. Hay que reescribir loadAllData() para leer por-nodo solo lo que el rol necesita (reservas, huespedes, precios, config, roles, etc.), nunca el arbol entero.",
+    "FOLLOW-UP 2 (bloqueante): el form publico (submitPublicRegistration) hoy hace loadAllData()+DB.set('huespedes', arrayCompleto) SIN auth. Debe cambiarse a un push() anonimo a 'alula/preRegistros' con solo los 12 campos del esquema (sin leer ni reescribir huespedes). Un admin luego revisa preRegistros y los promueve a huespedes.",
+    "FOLLOW-UP 3 (bloqueante): la vista publica de lista negra (showListaNegraPublica) hoy hace loadAllData() y filtra huespedes por score<=5, exponiendo PII interna. Debe leer SOLO 'alula/listanegraPublica' (.read publico) con campos seguros (nombre, apellido, motivo, nivel). El admin mantiene/sincroniza ese nodo; NUNCA exponer score/obs crudos.",
+    "FOLLOW-UP 4 (bloqueante): hay que poblar 'alula/admins/{uid}': true para cada usuario administrador (uid de Firebase Auth). El front debe determinar 'soy admin' leyendo 'alula/admins/{uid}' (cada usuario puede leer su propia flag), no derivandolo del array usuarios.",
+    "FOLLOW-UP 5 (seguridad alta): 'alula/usuarios' guarda 'pass' en TEXTO PLANO (auth.js saveChangePassword/initData). Es redundante con Firebase Auth y peligroso. Quitar 'pass' del registro. Mientras siga ahi, cualquier usuario que pueda leer usuarios ve las contrasenas.",
+    "FOLLOW-UP 6: login (doLogin) escribe el array COMPLETO de usuarios para bumpear ultimoAcceso, y saveChangePassword tambien. Con 'usuarios' write solo-admin esto rompe para no-admins. Migrar a usuarios indexados por uid (alula/usuarios/{uid}) y permitir que cada uno escriba su propio ultimoAcceso; o mover ultimoAcceso a un nodo aparte.",
+    "FOLLOW-UP 7: login (doLogin) y restauracion de sesion buscan al usuario en el array 'usuarios' para validar estado/rol. Si 'usuarios' pasa a read solo-admin, el login de no-admins se rompe. Por eso aqui 'usuarios' queda con read autenticado hasta migrar a un directorio 'usuariosPublic/{uid}' (nombre, rol, estado) legible por su dueno. Recien ahi 'usuarios' (con datos sensibles) puede pasar a solo-admin.",
+    "FOLLOW-UP 8: per-rol no se aplica a nivel de reglas (limpieza/ventas read-only es solo cosmetico en la UI; via consola cualquier autenticado escribe). Para enforcement real se necesitan Custom Claims o reestructurar por uid. Documentado, no resuelto aqui.",
+    "FOLLOW-UP 9: escritura publica a preRegistros es susceptible de spam/DoS (un anonimo puede pushear muchos registros). Activar Firebase App Check y/o limitar tamano. La validacion ya acota foto a 2.000.000 chars y rechaza campos extra.",
+    "FOLLOW-UP 10: fotos en base64 dentro de RTDB inflan el arbol y encarecen toda lectura. Migrar 'foto' a Cloud Storage y guardar solo la URL.",
+    "FOLLOW-UP 11: el seeding de roles/config (initData) hace DB.set en el primer login. Con roles/config write solo-admin, sembrar estando autenticado como admin (o abrir reglas temporalmente la primera vez)."
+  ],
+  "rules": {
+    "alula": {
+      ".read": false,
+      ".write": false,
+
+      "admins": {
+        ".read": "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isBoolean()"
+        }
+      },
+
+      "preRegistros": {
+        ".read": "auth != null",
+        ".write": false,
+        "$pid": {
+          ".write": "auth != null || (!data.exists() && newData.exists())",
+          ".validate": "newData.hasChildren(['nombre','apellido','dni','nac','pendiente'])",
+          "nombre":          { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
+          "apellido":        { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
+          "dni":             { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 30" },
+          "nac":             { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 60" },
+          "tel":             { ".validate": "newData.isString() && newData.val().length <= 30" },
+          "email":           { ".validate": "newData.isString() && newData.val().length <= 120 && (newData.val().length === 0 || newData.val().matches(/^[^@]+@[^@]+[.][^@]+$/))" },
+          "ciudad":          { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "provincia":       { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "fechaNacimiento": { ".validate": "newData.isString() && newData.val().length <= 10" },
+          "genero":          { ".validate": "newData.isString() && newData.val().length <= 30" },
+          "foto":            { ".validate": "newData.isString() && newData.val().length <= 2000000" },
+          "pendiente":       { ".validate": "newData.isBoolean() && newData.val() === true" },
+          "$other":          { ".validate": false }
+        }
+      },
+
+      "listanegraPublica": {
+        ".read": true,
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
+        "$id": {
+          ".validate": "newData.hasChildren(['nombre','apellido'])",
+          "nombre":   { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
+          "apellido": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
+          "motivo":   { ".validate": "newData.isString() && newData.val().length <= 280" },
+          "nivel":    { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "$other":   { ".validate": false }
+        }
+      },
+
+      "usuarios": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
+      },
+
+      "roles": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
+      },
+
+      "config": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
+      },
+
+      "huespedes":    { ".read": "auth != null", ".write": "auth != null" },
+      "reservas":     { ".read": "auth != null", ".write": "auth != null" },
+      "precios":      { ".read": "auth != null", ".write": "auth != null" },
+      "camasConfig":  { ".read": "auth != null", ".write": "auth != null" },
+      "beds":         { ".read": "auth != null", ".write": "auth != null" },
+      "movimientos":  { ".read": "auth != null", ".write": "auth != null" },
+      "cierres":      { ".read": "auth != null", ".write": "auth != null" },
+      "auditoria":    { ".read": "auth != null", ".write": "auth != null" },
+      "aluKnowledge": { ".read": "auth != null", ".write": "auth != null" }
+    }
+  }
+}
