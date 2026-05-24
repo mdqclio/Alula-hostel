@@ -1,6 +1,6 @@
 // ===================== HUÉSPEDES =====================
 import { DB } from './firebase-config.js';
-import { showNotif, openModal, closeModal, fmtMoney, estadoBadge, nightsBetween } from './helpers.js';
+import { showNotif, openModal, closeModal, fmtMoney, estadoBadge, nightsBetween, escapeHtml } from './helpers.js';
 import { logAuditoria } from './auditoria.js';
 
 export function getScoreBadge(score) {
@@ -39,16 +39,16 @@ export function renderHuespedes() {
 
   const sel = document.getElementById('res-huesped');
   if (sel) {
-    sel.innerHTML = '<option value="">Seleccionar...</option>' + huespedes.map(h => `<option value="${h.id}">${h.nombre} ${h.apellido}</option>`).join('');
+    sel.innerHTML = '<option value="">Seleccionar...</option>' + huespedes.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)}</option>`).join('');
   }
 
   document.getElementById('tablaHuespedes').innerHTML = filtered.length
     ? filtered.map(h => `<tr>
-        <td><strong style="color:var(--text)">${h.nombre} ${h.apellido}</strong>${h.pendiente ? ` <span class="badge amber" style="font-size:10px">Por confirmar</span>` : ''}</td>
-        <td style="font-family:'DM Mono';font-size:12px">${h.dni}</td>
-        <td>${h.nac || '—'}</td>
-        <td>${h.tel || '—'}</td>
-        <td>${h.email || '—'}</td>
+        <td><strong style="color:var(--text)">${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)}</strong>${h.pendiente ? ` <span class="badge amber" style="font-size:10px">Por confirmar</span>` : ''}</td>
+        <td style="font-family:'DM Mono';font-size:12px">${escapeHtml(h.dni)}</td>
+        <td>${escapeHtml(h.nac || '—')}</td>
+        <td>${escapeHtml(h.tel || '—')}</td>
+        <td>${escapeHtml(h.email || '—')}</td>
         <td style="text-align:center">${h.estadias || 0}</td>
         <td>${getScoreBadge(h.score)}</td>
         <td style="display:flex;gap:4px;">
@@ -67,20 +67,20 @@ export function showGuestDetail(id) {
   const generoIcon = { Masculino: '♂', Femenino: '♀', Otro: '⚧', 'Prefiero no responder': '—' };
   document.getElementById('guestDetailContent').innerHTML = `
     <div class="guest-detail" style="margin-bottom:20px">
-      <div class="guest-avatar">${h.nombre[0]}${h.apellido[0]}</div>
+      <div class="guest-avatar">${escapeHtml(h.nombre[0])}${escapeHtml(h.apellido[0])}</div>
       <div class="guest-info">
-        <h3>${h.nombre} ${h.apellido}</h3>
+        <h3>${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)}</h3>
         <div class="guest-meta">
-          <span class="meta-chip">🪪 ${h.dni}</span>
-          <span class="meta-chip">🌍 ${h.nac || '—'}</span>
-          ${h.ciudad || h.provincia ? `<span class="meta-chip">📍 ${[h.ciudad, h.provincia].filter(Boolean).join(', ')}</span>` : ''}
+          <span class="meta-chip">🪪 ${escapeHtml(h.dni)}</span>
+          <span class="meta-chip">🌍 ${escapeHtml(h.nac || '—')}</span>
+          ${h.ciudad || h.provincia ? `<span class="meta-chip">📍 ${escapeHtml([h.ciudad, h.provincia].filter(Boolean).join(', '))}</span>` : ''}
           ${h.fechaNacimiento ? `<span class="meta-chip">🎂 ${h.fechaNacimiento}</span>` : ''}
           ${h.genero ? `<span class="meta-chip">${generoIcon[h.genero] || ''} ${h.genero}</span>` : ''}
-          ${h.tel ? `<span class="meta-chip"><a href="https://wa.me/${h.tel.replace(/\D/g,'')}" target="_blank" style="color:inherit;text-decoration:none;">📱 ${h.tel}</a></span>` : ''}
-          ${h.email ? `<span class="meta-chip">✉️ ${h.email}</span>` : ''}
+          ${h.tel ? `<span class="meta-chip"><a href="https://wa.me/${h.tel.replace(/\D/g,'')}" target="_blank" style="color:inherit;text-decoration:none;">📱 ${escapeHtml(h.tel)}</a></span>` : ''}
+          ${h.email ? `<span class="meta-chip">✉️ ${escapeHtml(h.email)}</span>` : ''}
           <span class="meta-chip">🏨 ${reservas.length} estadía(s)</span>
         </div>
-        ${h.obs ? `<p style="font-size:12px;color:var(--amber);margin-top:8px;">📝 ${h.obs}</p>` : ''}
+        ${h.obs ? `<p style="font-size:12px;color:var(--amber);margin-top:8px;">📝 ${escapeHtml(h.obs)}</p>` : ''}
       </div>
     </div>
     ${h.foto ? `<div style="margin-bottom:16px"><p style="font-size:12px;color:var(--text3);margin-bottom:6px">Documento:</p><img src="${h.foto}" style="max-width:100%;border-radius:8px;max-height:160px"></div>` : ''}
@@ -201,6 +201,7 @@ export async function saveEditHuesped() {
 }
 
 export function confirmDelete(tipo, id, nombre) {
+  nombre = escapeHtml(nombre);
   const msgs = {
     huesped: `¿Borrar al huésped <strong>${nombre}</strong>? También se eliminarán sus reservas asociadas.`,
     reserva: `¿Eliminar la <strong>${nombre}</strong>? Esta acción no se puede deshacer.`

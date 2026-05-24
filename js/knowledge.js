@@ -1,6 +1,6 @@
 // ===================== BASE DE CONOCIMIENTO ALU =====================
 import { DB } from './firebase-config.js';
-import { today, showNotif } from './helpers.js';
+import { today, showNotif, escapeHtml } from './helpers.js';
 
 export function renderKnowledge() {
   const items = DB.get('aluKnowledge', []);
@@ -14,8 +14,8 @@ export function renderKnowledge() {
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;" id="kb-item-${idx}">
       <div style="display:flex;align-items:flex-start;gap:10px;">
         <div style="flex:1;">
-          <div class="kb-text-view" id="kb-text-${idx}" style="font-size:14px;color:var(--text);line-height:1.5;">${item.texto}</div>
-          <textarea class="kb-text-edit" id="kb-edit-${idx}" style="display:none;width:100%;padding:8px;background:var(--surface3);border:1px solid var(--accent);border-radius:var(--radius);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;min-height:60px;">${item.texto}</textarea>
+          <div class="kb-text-view" id="kb-text-${idx}" style="font-size:14px;color:var(--text);line-height:1.5;">${escapeHtml(item.texto)}</div>
+          <textarea class="kb-text-edit" id="kb-edit-${idx}" style="display:none;width:100%;padding:8px;background:var(--surface3);border:1px solid var(--accent);border-radius:var(--radius);color:var(--text);font-size:13px;font-family:inherit;resize:vertical;min-height:60px;">${escapeHtml(item.texto)}</textarea>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">
           <div style="font-size:11px;color:var(--text3);">${item.fecha || ''} ${item.origen === 'corrección' ? '<span style="color:var(--amber);">✏️ corrección</span>' : ''}</div>

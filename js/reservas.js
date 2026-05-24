@@ -37,7 +37,7 @@ export function renderReservas() {
     const hasSaldo = Number(r.saldo || 0) > 0;
     return `<tr>
       <td style="font-family:'DM Mono';font-size:11px;color:var(--text3)">${r.id}</td>
-      <td>${getHuespedNombre(r.huespedId)}</td>
+      <td>${escapeHtml(getHuespedNombre(r.huespedId))}</td>
       <td>Hab.${r.hab} / C${camaLabel(r.cama)}</td>
       <td>${r.entrada}</td><td>${r.salida}</td>
       <td style="text-align:center">${nights}</td>
@@ -176,11 +176,11 @@ export function calcTotalReserva() {
 export function openNuevaReserva() {
   const huespedes = DB.get('huespedes', []);
   document.getElementById('res-huesped').innerHTML = '<option value="">Seleccionar...</option>' +
-    huespedes.map(h => `<option value="${h.id}">${h.nombre} ${h.apellido}</option>`).join('');
+    huespedes.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)}</option>`).join('');
 
   const habs = getConfig().hostel.habitaciones.filter(h => h.activa && h.camas > 0);
   document.getElementById('res-hab').innerHTML = '<option value="">Seleccionar...</option>' +
-    habs.map(h => `<option value="${h.id}">${h.nombre}</option>`).join('');
+    habs.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)}</option>`).join('');
 
   document.getElementById('res-cama').innerHTML = '<option value="">Primero elegí fechas y habitación</option>';
   _clearCamaInfo();
@@ -263,7 +263,7 @@ export function doCheckin(rid) {
   document.getElementById('ci-obs').value = '';
   document.getElementById('ci-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${getHuespedNombre(r.huespedId)}</strong></div>
+      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Hab. / Cama</span><strong>Hab.${r.hab} / C${camaLabel(r.cama)}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Salida</span><strong>${r.salida}</strong></div>
     </div>`;
@@ -313,7 +313,7 @@ export function openPago(rid) {
   document.getElementById('pago-concepto').value = `Saldo estadía ${getHuespedNombre(r.huespedId)}`;
   document.getElementById('pago-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${getHuespedNombre(r.huespedId)}</strong></div>
+      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Total estadía</span><strong style="color:var(--accent2)">${fmtMoney(total, r.moneda)}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Saldo pendiente</span><strong style="color:#fbbf24">${fmtMoney(r.saldo || 0, r.moneda)}</strong></div>
     </div>`;
@@ -353,7 +353,7 @@ export function openExtender(rid) {
   document.getElementById('ext-monto-extra').value = fmtMoney(0, r.moneda);
   document.getElementById('ext-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${getHuespedNombre(r.huespedId)}</strong></div>
+      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Salida actual</span><strong style="color:#fbbf24">${r.salida}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Precio/noche</span><strong style="color:var(--accent2)">${fmtMoney(r.precio, r.moneda)}</strong></div>
     </div>`;
@@ -458,7 +458,7 @@ export function openCambioCama(rid) {
   document.getElementById('cc-llave').value = r.llave || '';
   document.getElementById('cc-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${getHuespedNombre(r.huespedId)}</strong></div>
+      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Cama actual</span><strong style="color:#fbbf24">Hab.${r.hab} — Cama ${camaLabel(r.cama)}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Período</span><strong>${r.entrada} → ${r.salida}</strong></div>
     </div>`;
@@ -536,7 +536,7 @@ export function openHorario(rid, tipo) {
   document.getElementById('horario-notas').value = '';
   document.getElementById('horario-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${getHuespedNombre(r.huespedId)}</strong></div>
+      <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">Hab. / Cama</span><strong>Hab.${r.hab} / C${camaLabel(r.cama)}</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">${isLate ? 'Salida estándar' : 'Entrada estándar'}</span><strong style="color:#fbbf24">${isLate ? _hor.checkout : _hor.checkin} hs</strong></div>
       <div><span style="color:var(--text3);display:block;font-size:11px">${isLate ? 'Fecha de salida' : 'Fecha de entrada'}</span><strong>${isLate ? r.salida : r.entrada}</strong></div>

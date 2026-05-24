@@ -30,7 +30,7 @@ function popularCuentasSelect(selectId) {
   if (!el) return;
   el.innerHTML = '<option value="">Sin asignar</option>' +
     getCuentas().filter(c => c.activa).map(c =>
-      `<option value="${c.id}">${c.nombre} (${c.moneda})</option>`
+      `<option value="${c.id}">${escapeHtml(c.nombre)} (${c.moneda})</option>`
     ).join('');
 }
 
@@ -109,10 +109,10 @@ export function renderCaja() {
   document.getElementById('tablaCaja').innerHTML = movs.length
     ? movs.map(m => `<tr>
         <td style="font-family:'DM Mono';font-size:12px">${m.fecha}</td>
-        <td>${m.concepto}${m.esTransferencia ? ' <span class="badge blue" style="font-size:10px">transferencia</span>' : ''}</td>
+        <td>${escapeHtml(m.concepto)}${m.esTransferencia ? ' <span class="badge blue" style="font-size:10px">transferencia</span>' : ''}</td>
         <td><span class="badge ${m.tipo === 'ingreso' ? 'green' : 'red'}">${m.tipo}</span></td>
         <td style="font-weight:500;color:${m.tipo === 'ingreso' ? '#34d399' : '#f87171'}">${m.tipo === 'ingreso' ? '+' : '-'}${fmtMoney(m.monto, m.moneda)}</td>
-        <td style="font-size:11px;color:var(--text3)">${getCuentaNombre(m.cuenta) || '—'}</td>
+        <td style="font-size:11px;color:var(--text3)">${escapeHtml(getCuentaNombre(m.cuenta) || '—')}</td>
       </tr>`).join('')
     : '<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin movimientos hoy</td></tr>';
 
@@ -172,7 +172,7 @@ export function cerrarCaja() {
 // ===== TRANSFERENCIAS INTERNAS =====
 export async function openTransferenciaModal() {
   const cuentas = getCuentas().filter(c => c.activa);
-  const opts = cuentas.map(c => `<option value="${c.id}">${c.nombre} (${c.moneda})</option>`).join('');
+  const opts = cuentas.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)} (${c.moneda})</option>`).join('');
 
   const origenEl  = document.getElementById('transf-origen');
   const destinoEl = document.getElementById('transf-destino');
@@ -308,8 +308,8 @@ export function renderSaldos() {
         <tbody>
           ${rows.map(r => `<tr>
             <td>
-              <strong>${tipoIcon[r.tipo] || '💰'} ${r.nombre}</strong>
-              ${r.responsable ? `<br><span style="font-size:11px;color:var(--text3)">${r.responsable}</span>` : ''}
+              <strong>${tipoIcon[r.tipo] || '💰'} ${escapeHtml(r.nombre)}</strong>
+              ${r.responsable ? `<br><span style="font-size:11px;color:var(--text3)">${escapeHtml(r.responsable)}</span>` : ''}
             </td>
             <td style="text-transform:capitalize;font-size:12px;color:var(--text2)">${r.tipo}</td>
             <td><span class="badge ${r.moneda === 'USD' ? 'green' : 'blue'}">${r.moneda}</span></td>

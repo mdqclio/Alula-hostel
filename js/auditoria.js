@@ -1,6 +1,6 @@
 // ===================== AUDITORÍA / LOG DE CAMBIOS =====================
 import { DB } from './firebase-config.js';
-import { today } from './helpers.js';
+import { today, escapeHtml } from './helpers.js';
 
 // Módulo de paginación y filtrado
 let _historialFiltrados = [];
@@ -167,10 +167,10 @@ function _renderPagina() {
         const tieneCambios = l.cambios?.antes !== null || l.cambios?.despues !== null;
         return `<tr>
           <td style="font-family:'DM Mono';font-size:11px;white-space:nowrap">${fecha}</td>
-          <td style="font-size:12px">${l.usuario?.nombre || '—'}</td>
+          <td style="font-size:12px">${escapeHtml(l.usuario?.nombre || '—')}</td>
           <td><span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;background:${color}22;color:${color};border:1px solid ${color}44">${l.accion}</span></td>
           <td style="font-size:12px;color:var(--text2)">${l.entidad}</td>
-          <td style="font-size:13px">${l.descripcion}</td>
+          <td style="font-size:13px">${escapeHtml(l.descripcion)}</td>
           <td>${tieneCambios ? `<button class="btn btn-ghost btn-sm" onclick="verDetalleAuditoria('${l.id}')">Ver</button>` : '<span style="color:var(--text3);font-size:12px">—</span>'}</td>
         </tr>`;
       }).join('')
@@ -206,7 +206,7 @@ export function verDetalleAuditoria(id) {
   });
 
   const fmt = v => v !== null && v !== undefined
-    ? `<pre style="background:var(--surface3);padding:10px;border-radius:var(--radius);font-size:11px;font-family:'DM Mono';overflow:auto;max-height:220px;white-space:pre-wrap;word-break:break-all">${JSON.stringify(v, null, 2)}</pre>`
+    ? `<pre style="background:var(--surface3);padding:10px;border-radius:var(--radius);font-size:11px;font-family:'DM Mono';overflow:auto;max-height:220px;white-space:pre-wrap;word-break:break-all">${escapeHtml(JSON.stringify(v, null, 2))}</pre>`
     : '<span style="color:var(--text3);font-size:12px">—</span>';
 
   document.getElementById('audDetalleFecha').textContent       = fecha;
