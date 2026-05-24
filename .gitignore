@@ -38,6 +38,10 @@ firebase-debug.*.log
 *.log
 logs/
 
+# Playwright (capturas y artifacts de test)
+.playwright-mcp/
+*.png
+
 # Backups locales
 *.bak
 *.tmp
