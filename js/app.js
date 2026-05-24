@@ -23,7 +23,6 @@ import {
   showPublicFormLink, copyPublicLink, openPublicFormPreview,
   checkPublicMode, showPublicRegistrationForm, previewPubDoc, submitPublicRegistration
 } from './huespedes.js';
-import { renderPrecios, switchPricingTab, updateTemporada, updateHabPrecio, updatePlatPrecio, deleteTemporada, addTemporada } from './precios.js';
 import { renderAcct, switchAcctTab, aplicarFiltroReportes, exportarReporteCSV } from './contabilidad.js';
 import {
   renderCaja, saveMovimiento, cerrarCaja,
@@ -94,10 +93,6 @@ Object.assign(window, {
   renderScoreStars, setScore, getScoreBadge,
   showPublicFormLink, copyPublicLink, openPublicFormPreview,
   showPublicRegistrationForm, previewPubDoc, submitPublicRegistration,
-
-  // Precios
-  renderPrecios, switchPricingTab,
-  updateTemporada, updateHabPrecio, updatePlatPrecio, deleteTemporada, addTemporada,
 
   // Contabilidad
   renderAcct, switchAcctTab, aplicarFiltroReportes, exportarReporteCSV,
