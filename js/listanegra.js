@@ -1,6 +1,6 @@
 // ===================== LISTA NEGRA =====================
 import { DB, loadAllData } from './firebase-config.js';
-import { showNotif } from './helpers.js';
+import { showNotif, escapeHtml } from './helpers.js';
 import { getScoreBadge } from './huespedes.js';
 
 export function renderListaNegra() {
@@ -12,9 +12,9 @@ export function renderListaNegra() {
     return;
   }
   tbody.innerHTML = lista.map(h => `<tr>
-    <td><strong style="color:var(--text)">${h.nombre} ${h.apellido}</strong></td>
+    <td><strong style="color:var(--text)">${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)}</strong></td>
     <td>${getScoreBadge(h.score)}</td>
-    <td style="font-size:12px;color:var(--text2)">${h.obs || '—'}</td>
+    <td style="font-size:12px;color:var(--text2)">${escapeHtml(h.obs || '—')}</td>
     <td style="text-align:center">${h.estadias || 0}</td>
     <td style="font-size:12px;color:var(--text3)">Alula Hostel</td>
   </tr>`).join('');
@@ -53,8 +53,8 @@ export async function showListaNegraPublica() {
           ${lista.map(h => `
             <div style="background:var(--surface);border:1px solid rgba(220,38,38,0.3);border-radius:var(--radius2);padding:16px 20px;display:flex;align-items:center;gap:16px;">
               <div style="flex:1;">
-                <div style="font-weight:600;color:var(--text);font-size:15px;">${h.nombre} ${h.apellido}</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:4px;">${h.obs || 'Sin observaciones'}</div>
+                <div style="font-weight:600;color:var(--text);font-size:15px;">${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)}</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:4px;">${escapeHtml(h.obs || 'Sin observaciones')}</div>
               </div>
               <div>${getScoreBadge(h.score)}</div>
             </div>`).join('')}
