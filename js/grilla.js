@@ -1,9 +1,11 @@
 // ===================== GRILLA DE RESERVAS =====================
 import { DB } from './firebase-config.js';
-import { today, dateToLocal } from './helpers.js';
-import { getConfig, habBeds } from './config.js';
+import { today, dateToLocal, fmtMoney } from './helpers.js';
+import { getConfig, habBeds, getMonedas } from './config.js';
+import { cotizar } from './services/cotizador.service.js';
 
 let grillaFechaInicio = null;
+let cotizacionState = null;   // { entrada, salida, cantidadCamas } cuando hay cotización
 const GRILLA_DIAS = 14;
 
 function getHuespedNombre(id) {
@@ -24,7 +26,120 @@ export function grillaNavegar(dias) {
   renderGrilla();
 }
 
+// ===================== MODO COTIZACIÓN: control =====================
+export function setCotizacionRango({ entrada, salida, cantidadCamas } = {}) {
+  cotizacionState = {
+    entrada: entrada || '',
+    salida: salida || '',
+    cantidadCamas: Math.max(1, Number(cantidadCamas) || 1),
+  };
+  renderGrilla();
+}
+
+export function clearCotizacionRango() {
+  cotizacionState = null;
+  ['cotiz-desde', 'cotiz-hasta'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const cc = document.getElementById('cotiz-camas'); if (cc) cc.value = '1';
+  renderGrilla();
+}
+
+function setIndicador(html, kind) {
+  const el = document.getElementById('grillaCotizIndicador');
+  if (!el) return;
+  el.innerHTML = html || '';
+  el.style.display = html ? '' : 'none';
+  el.classList.toggle('error', kind === 'error');
+}
+
+// ===================== DISPATCHER =====================
 export function renderGrilla() {
+  const c = cotizacionState;
+  if (c && c.entrada && c.salida && c.salida > c.entrada) {
+    renderCotizacion(c);
+    return;
+  }
+  // Modo operativo. Si hay un rango invertido cargado, avisar en el indicador.
+  if (c && c.entrada && c.salida && c.salida <= c.entrada) {
+    setIndicador('⚠️ El check-out debe ser posterior al check-in', 'error');
+  } else {
+    setIndicador('', null);
+  }
+  renderOperativa();
+}
+
+// ===================== MODO COTIZACIÓN: render =====================
+function atributosResumen(attrs) {
+  if (!attrs) return '';
+  const parts = [];
+  if (attrs.tipo === 'abajo')          parts.push('🛏 Baja');
+  if (attrs.vista === 'mar')           parts.push('🌊 Mar');
+  else if (attrs.vista === 'parcial')  parts.push('🪟 Vista parcial');
+  if (attrs.balcon)                    parts.push('🏖 Balcón');
+  if (attrs.banoSuite)                 parts.push('🚿 Baño suite');
+  if (attrs.habitacionPremium)         parts.push('⭐ Premium');
+  if (attrs.ruido === 'bajo')          parts.push('🔇 Silenciosa');
+  if (attrs.cercaniaBano === 'cerca')  parts.push('🚪 Baño cerca');
+  return parts.join(' · ');
+}
+
+function renderCotizacion(c) {
+  const container = document.getElementById('grillaContainer');
+  if (!container) return;
+  const config = getConfig();
+  const result = cotizar({
+    entrada: c.entrada,
+    salida: c.salida,
+    cantidadCamas: c.cantidadCamas || 1,
+    reservas: DB.get('reservas', []),
+    camasConfig: DB.get('camasConfig', {}),
+    habitaciones: config.hostel.habitaciones,
+    temporadas: config.temporadas,
+    monedas: getMonedas(),
+  });
+
+  const rangoLabel = document.getElementById('grillaRangoLabel');
+  if (rangoLabel) rangoLabel.textContent = '';
+
+  if (!result.ok) {
+    setIndicador('📅 Cotización · ' + (result.mensaje || result.error), 'error');
+    container.innerHTML = `<p style="text-align:center;color:var(--text3);padding:32px;font-size:14px;">${result.mensaje || 'No se pudo cotizar.'}</p>`;
+    return;
+  }
+
+  const temp = result.temporada
+    ? result.temporada.charAt(0).toUpperCase() + result.temporada.slice(1)
+    : '—';
+  setIndicador(`📅 Cotización · ${result.noches} noche${result.noches !== 1 ? 's' : ''} · Ocupación ${result.ocupacion}% · Temporada ${temp}`, null);
+
+  let html = '';
+  (result.warnings || []).forEach(w => {
+    html += `<div class="grilla-coti-warning">⚠️ ${w}</div>`;
+  });
+
+  html += `<table class="cotiz-table"><thead><tr>
+    <th>Cama</th>
+    <th>Atributos</th>
+    <th style="text-align:center;">Score</th>
+    <th style="text-align:right;">Precio total · ${result.noches} noche${result.noches !== 1 ? 's' : ''}</th>
+  </tr></thead><tbody>`;
+
+  result.camas.forEach(cama => {
+    const resumen = atributosResumen(cama.atributos) || 'Estándar';
+    const onclick = `openNuevaReserva({prefill:{entrada:'${result.entrada}',salida:'${result.salida}',cama:'${cama.camaId}',precio:${cama.precioTotal},moneda:'${result.moneda}'}})`;
+    html += `<tr class="grilla-coti-row grilla-coti-row-${cama.tier}" onclick="${onclick}" title="Crear reserva con esta cama">
+      <td style="font-weight:600;">${cama.label}</td>
+      <td style="font-size:12px;">${resumen}</td>
+      <td style="text-align:center;">${cama.score}</td>
+      <td style="text-align:right;font-weight:600;">${fmtMoney(cama.precioTotal, result.moneda)}<br>
+        <span style="font-size:11px;opacity:0.7;font-weight:400;">${fmtMoney(cama.precioPorNoche, result.moneda)}/noche</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// ===================== MODO OPERATIVO: render (lógica original, sin cambios) =====================
+function renderOperativa() {
   if (!grillaFechaInicio) grillaFechaInicio = today();
   const reservas = DB.get('reservas', []);
   const tod = today();

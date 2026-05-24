@@ -173,7 +173,8 @@ export function calcTotalReserva() {
   }
 }
 
-export function openNuevaReserva() {
+export function openNuevaReserva(opts) {
+  const prefill = opts && opts.prefill ? opts.prefill : null;
   const huespedes = DB.get('huespedes', []);
   document.getElementById('res-huesped').innerHTML = '<option value="">Seleccionar...</option>' +
     huespedes.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)}</option>`).join('');
@@ -182,8 +183,27 @@ export function openNuevaReserva() {
   document.getElementById('res-hab').innerHTML = '<option value="">Seleccionar...</option>' +
     habs.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)}</option>`).join('');
 
-  document.getElementById('res-cama').innerHTML = '<option value="">Primero elegí fechas y habitación</option>';
-  _clearCamaInfo();
+  if (prefill) {
+    // Prefill desde el cotizador de la Grilla: respetar lo recibido, NO recalcular
+    // el precio sugerido. prefill.precio llega como TOTAL de la estadía; el campo
+    // del form es "precio por noche" y saveReserva hace precio×noches, así que lo
+    // convertimos a por-noche para que el total reconstruya el monto cotizado.
+    const hab = String(prefill.cama || '').split('-')[0];
+    document.getElementById('res-entrada').value = prefill.entrada || '';
+    document.getElementById('res-salida').value = prefill.salida || '';
+    document.getElementById('res-hab').value = hab;
+    document.getElementById('res-cama').innerHTML = habBeds(hab).map(b => `<option value="${b.id}">Cama ${b.label}</option>`).join('');
+    document.getElementById('res-cama').value = prefill.cama || '';
+    if (prefill.moneda) document.getElementById('res-moneda').value = prefill.moneda;
+    const noches = nightsBetween(prefill.entrada, prefill.salida);
+    const total = Number(prefill.precio) || 0;
+    document.getElementById('res-precio').value = (noches > 0 ? Math.round(total / noches) : total) || '';
+    _clearCamaInfo();
+    calcTotalReserva();
+  } else {
+    document.getElementById('res-cama').innerHTML = '<option value="">Primero elegí fechas y habitación</option>';
+    _clearCamaInfo();
+  }
   openModal('modalReserva');
 }
 

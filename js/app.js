@@ -5,7 +5,7 @@ import { doLogin, doLogout, openChangePassword, saveChangePassword, initAuth } f
 import { showSection, closeSidebar, openSidebar, toggleSidebar, updateDate } from './navigation.js';
 import { renderDashboard, onEntradaChange } from './dashboard.js';
 import { renderMapa, mapaNavegar, renderMapaFecha, cycleBed } from './mapa.js';
-import { renderGrilla, grillaNavegar, grillaHoy } from './grilla.js';
+import { renderGrilla, grillaNavegar, grillaHoy, setCotizacionRango, clearCotizacionRango } from './grilla.js';
 import {
   renderReservas, openNuevaReserva, saveReserva, updateBedsSelect, calcTotalReserva,
   doCheckin, confirmCheckin, openPago, savePago,
@@ -73,7 +73,7 @@ Object.assign(window, {
   renderMapa, mapaNavegar, renderMapaFecha,
 
   // Grilla
-  renderGrilla, grillaNavegar, grillaHoy,
+  renderGrilla, grillaNavegar, grillaHoy, setCotizacionRango, clearCotizacionRango,
 
   // Reservas
   renderReservas, openNuevaReserva, saveReserva, updateBedsSelect, calcTotalReserva,

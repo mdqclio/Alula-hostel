@@ -1,3 +1,17 @@
+<div class="grilla-cotizacion-bar">
+  <span style="font-size:12px;color:var(--text3);font-weight:600;">💰 Cotizar estadía:</span>
+  <label style="font-size:11px;color:var(--text2);display:flex;flex-direction:column;gap:3px;">Del
+    <input type="date" id="cotiz-desde" onchange="setCotizacionRango({entrada:this.value,salida:document.getElementById('cotiz-hasta').value,cantidadCamas:document.getElementById('cotiz-camas').value})">
+  </label>
+  <label style="font-size:11px;color:var(--text2);display:flex;flex-direction:column;gap:3px;">Al
+    <input type="date" id="cotiz-hasta" onchange="setCotizacionRango({entrada:document.getElementById('cotiz-desde').value,salida:this.value,cantidadCamas:document.getElementById('cotiz-camas').value})">
+  </label>
+  <label style="font-size:11px;color:var(--text2);display:flex;flex-direction:column;gap:3px;">Camas
+    <input type="number" id="cotiz-camas" min="1" value="1" style="width:64px;" onchange="setCotizacionRango({entrada:document.getElementById('cotiz-desde').value,salida:document.getElementById('cotiz-hasta').value,cantidadCamas:this.value})">
+  </label>
+  <button class="btn btn-ghost btn-sm" onclick="clearCotizacionRango()">Limpiar cotización</button>
+  <span id="grillaCotizIndicador" class="grilla-cotizacion-indicador" style="display:none;"></span>
+</div>
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
   <button class="btn btn-ghost btn-sm" onclick="grillaNavegar(-7)">◀ 7 días</button>
   <button class="btn btn-ghost btn-sm" onclick="grillaNavegar(-1)">◀ 1 día</button>
