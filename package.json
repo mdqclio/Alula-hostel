@@ -1,0 +1,25 @@
+{
+  "name": "alula-hostel",
+  "version": "1.0.0",
+  "description": "",
+  "main": "grilla.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mdqclio/Alula-hostel.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mdqclio/Alula-hostel/issues"
+  },
+  "homepage": "https://github.com/mdqclio/Alula-hostel#readme",
+  "devDependencies": {
+    "vitest": "^4.1.7"
+  }
+}
