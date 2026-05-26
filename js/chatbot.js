@@ -27,8 +27,17 @@ export function closeChatCorrect() {
 export async function saveChatCorrect() {
   const texto = document.getElementById('chatCorrectInput').value.trim();
   if (!texto) { showNotif('Escribí la corrección antes de guardar', 'error'); return; }
-  const items = DB.get('aluKnowledge', []);
-  items.push({ texto, fecha: today(), origen: 'corrección' });
+  // aluKnowledge puede venir como array (keys 0..N) o como object (mibot247
+  // escribe keys alfanuméricas tipo "kb_<ts>"). Preservar el shape de origen.
+  const raw = DB.get('aluKnowledge', []);
+  const entry = { texto, fecha: today(), origen: 'corrección' };
+  let items;
+  if (Array.isArray(raw)) {
+    items = [...raw, entry];
+  } else {
+    items = { ...(raw || {}) };
+    items['kb_admin_' + Date.now()] = entry;
+  }
   await DB.set('aluKnowledge', items);
   closeChatCorrect();
   showNotif('✅ Corrección guardada en la Base de Conocimiento');
@@ -226,7 +235,10 @@ function buildSystemPrompt() {
   const reservas = DB.get('reservas', []);
   const bedStates = DB.get('beds', {});
   const precios = DB.get('precios', {});
-  const knowledge = DB.get('aluKnowledge', []);
+  const knowledgeRaw = DB.get('aluKnowledge', []);
+  const knowledge = Array.isArray(knowledgeRaw)
+    ? knowledgeRaw.filter(k => k != null)
+    : Object.values(knowledgeRaw || {}).filter(k => k != null);
   const todayStr = today();
   const cfg = getConfig();
 
