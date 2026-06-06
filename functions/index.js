@@ -25,12 +25,27 @@ export const cotizar = onRequest(
         return;
       }
 
-      const body = req.body || {};
+      const body = (req.body && typeof req.body === 'object') ? req.body : {};
       const { tenant, entrada, salida, cantidadCamas } = body;
 
-      if (!tenant || !ALLOWED_TENANTS.has(tenant)) {
+      if (!tenant || typeof tenant !== 'string' || !ALLOWED_TENANTS.has(tenant)) {
         res.status(400).json({ error: 'tenant_no_soportado', mensaje: `Tenant '${tenant}' no soportado.` });
         return;
+      }
+
+      // Validación de entradas barata en el borde HTTP (la lógica de cálculo de
+      // cotizador.service.js no cambia; sólo evitamos llamarla con basura).
+      if (typeof entrada !== 'string' || typeof salida !== 'string') {
+        res.status(400).json({ error: 'fechas_requeridas', mensaje: 'entrada y salida deben ser strings YYYY-MM-DD.' });
+        return;
+      }
+      // cantidadCamas: si viene, debe ser un entero positivo razonable.
+      if (cantidadCamas !== undefined) {
+        const n = Number(cantidadCamas);
+        if (!Number.isInteger(n) || n < 1 || n > 1000) {
+          res.status(400).json({ error: 'cantidad_camas_invalida', mensaje: 'cantidadCamas debe ser un entero entre 1 y 1000.' });
+          return;
+        }
       }
 
       const db = getDatabase();

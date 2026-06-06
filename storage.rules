@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Cloud Storage de alula-hostel — auth-only, deny-by-default.
+//
+// Hoy la app NO usa Cloud Storage (las fotos de documentos van en base64 dentro
+// de RTDB; ver follow-up de migración en la auditoría). Pero el proyecto tiene
+// un storageBucket configurado, así que estas reglas evitan que el bucket quede
+// abierto: cualquier lectura/escritura requiere usuario autenticado.
+//
+// Cuando se migren las fotos a Storage, acotar por path/rol/owner según
+// corresponda. NO desplegar es responsabilidad del dueño (ver doc de remediación).
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

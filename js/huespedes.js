@@ -240,29 +240,28 @@ export async function runOCR(formContext) {
     showNotif('Primero subí la foto del documento', 'error');
     return;
   }
-  const apiKey = DB.get('secrets', {}).groqApiKey;
-  if (!apiKey) {
-    showNotif('No hay API key de Groq. Configurala en el chatbot primero.', 'error');
-    return;
-  }
+  // SEGURIDAD: el OCR client-side está desactivado a propósito. Antes bajaba la
+  // API key de Groq desde RTDB (alula/secrets) y llamaba directo a api.groq.com
+  // con Authorization: Bearer <key>, exponiendo el secreto en el browser. La
+  // llamada (con la imagen) debe ir por una Cloud Function que use la key desde
+  // Secret Manager. Hasta que exista ese endpoint, se completa a mano.
+  // Ver docs/auditoria/Alula-hostel-REMEDIACION.md.
+  showNotif('El auto-completado con IA está temporalmente deshabilitado mientras se migra a un backend seguro. Completá los datos manualmente.', 'error');
+  return;
+
+  /* eslint-disable no-unreachable */
+  // --- Implementación original (desactivada por seguridad) ---
+  // Reactivar SOLO contra una Cloud Function (enviando imgEl.src), nunca con la
+  // key de Groq en el cliente.
+  /*
   const btnId = formContext === 'pub' ? 'btn-ocr-pub' : 'btn-ocr-new';
   const btn = document.getElementById(btnId);
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Procesando...'; }
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('<URL de la Cloud Function que proxea a Groq vision>', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.2-90b-vision-preview',
-        max_tokens: 400,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: imgEl.src } },
-            { type: 'text', text: 'Esta es una foto de un DNI argentino o pasaporte. Extraé los datos en formato JSON estricto sin texto adicional: {"nombre":"","apellido":"","dni":"","fechaNacimiento":"YYYY-MM-DD","genero":"Masculino o Femenino","nacionalidad":"","ciudad":"","provincia":""}. Si un campo no se puede leer, dejalo como string vacío.' }
-          ]
-        }]
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: imgEl.src })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error.message);
@@ -295,6 +294,7 @@ export async function runOCR(formContext) {
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🪄 Auto-completar con IA'; }
   }
+  */
 }
 
 // ===================== FORMULARIO PÚBLICO =====================

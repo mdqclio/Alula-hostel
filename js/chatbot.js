@@ -46,19 +46,22 @@ export async function saveChatCorrect() {
 // ===== CHATBOT =====
 
 export let chatHistory = [];
-export let chatApiKey = localStorage.getItem('alula_groq_key') || '';
+// SEGURIDAD: la API key de Groq YA NO se baja a este cliente ni se cachea en
+// localStorage. Bajar un secreto de terceros al browser lo expone a cualquiera
+// con sesión o que inspeccione la red/localStorage. La llamada a Groq debe ir
+// por una Cloud Function con la key en Secret Manager (ver
+// docs/auditoria/Alula-hostel-REMEDIACION.md). Hasta que exista ese endpoint,
+// el chat client-side queda desactivado a propósito.
+export let chatApiKey = '';
 export let chatTyping = false;
 export let chatOpen = false;
 export let lastChatTime = 0;
 
+// Stub: dejó de leer la key de Groq desde RTDB (alula/secrets). Se mantiene la
+// firma para no romper a los llamadores; ya no expone ningún secreto al cliente.
 export async function loadApiKeyFromFirebase() {
-  try {
-    const secrets = DB.get('secrets', {});
-    if (secrets.groqApiKey && !chatApiKey) {
-      chatApiKey = secrets.groqApiKey;
-      localStorage.setItem('alula_groq_key', chatApiKey);
-    }
-  } catch(e) { /* silencioso */ }
+  // Intencionalmente vacío. La key vive solo server-side (Cloud Function +
+  // Secret Manager); el cliente nunca debe verla.
 }
 
 export function toggleChatFloat() {
@@ -92,15 +95,12 @@ export function clearChat() {
 }
 
 export async function saveApiKey() {
-  const key = document.getElementById('chatApiKeyInput').value.trim();
-  if (!key) { showNotif('Ingresá la API key', 'error'); return; }
-  chatApiKey = key;
-  localStorage.setItem('alula_groq_key', key);
-  const secrets = DB.get('secrets', {});
-  secrets.groqApiKey = key;
-  await DB.set('secrets', secrets);
-  document.getElementById('chatApiWarning').style.display = 'none';
-  showNotif('✅ API key guardada para todos los usuarios');
+  // SEGURIDAD: deshabilitado a propósito. Antes esta función escribía la API key
+  // de Groq en RTDB (alula/secrets) y en localStorage, exponiendo el secreto a
+  // cualquier usuario/sesión. La key NO debe vivir en el cliente ni en la DB:
+  // va en Secret Manager y se usa desde una Cloud Function.
+  // Ver docs/auditoria/Alula-hostel-REMEDIACION.md.
+  showNotif('La API key de Groq ya no se configura desde el cliente. Debe ir por una Cloud Function con Secret Manager (ver doc de remediación).', 'error');
 }
 
 export function addUserMessage(text) {
@@ -186,25 +186,29 @@ export async function sendMessage(text) {
   addUserMessage(text);
   chatHistory.push({ role: 'user', content: text });
 
-  if (!chatApiKey) {
-    addBotMessage('⚠️ Necesito la API key de Groq para responder. Ingresala arriba 👆');
-    return;
-  }
+  // SEGURIDAD: el chat client-side está desactivado a propósito. Antes este
+  // bloque llamaba directo a api.groq.com con la key de Groq en el browser
+  // (Authorization: Bearer <key>), exponiendo el secreto. La llamada debe
+  // moverse a una Cloud Function que use la key desde Secret Manager (igual que
+  // `cotizar`). Cuando exista ese endpoint, reemplazar este guard por un
+  // fetch a la Function (sin la key en el cliente).
+  // Ver docs/auditoria/Alula-hostel-REMEDIACION.md.
+  addBotMessage('⚠️ El asistente está temporalmente fuera de servicio: la llamada a la IA se está migrando a un backend seguro. Mientras tanto, respondé al cliente manualmente.');
+  return;
 
+  /* eslint-disable no-unreachable */
+  // --- Implementación original (desactivada por seguridad) ---
+  // Reactivar SOLO contra una Cloud Function, nunca con la key en el cliente.
+  /*
   chatTyping = true;
   document.getElementById('chatSendBtn').disabled = true;
   const typingDiv = addBotMessage('escribiendo...', true);
 
   try {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const res = await fetch('<URL de la Cloud Function que proxea a Groq>', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + chatApiKey
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 600,
         messages: [
           { role: 'system', content: buildSystemPrompt() },
           ...chatHistory
@@ -224,11 +228,12 @@ export async function sendMessage(text) {
     }
   } catch(e) {
     typingDiv.remove();
-    addBotMessage('Error de conexión. Revisá la API key o tu internet.');
+    addBotMessage('Error de conexión. Revisá tu internet.');
   }
 
   chatTyping = false;
   document.getElementById('chatSendBtn').disabled = false;
+  */
 }
 
 function buildSystemPrompt() {

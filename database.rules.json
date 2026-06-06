@@ -1,0 +1,102 @@
+// Reglas de Realtime Database de alula-hostel — endurecidas (deny-by-default).
+//
+// Origen: rama chore/firebase-rules (firebase.rules.proposed.json), mergeada a
+// main y cableada en firebase.json. El bloque "__notas" no-desplegable fue
+// removido (RTDB solo acepta la clave "rules"); las notas de migración viven en
+// docs/auditoria/Alula-hostel-REMEDIACION.md.
+//
+// Resumen de endurecimiento vs. las reglas previas ({".read":"auth!=null",
+// ".write":"auth!=null"} para todo el árbol):
+//   - "alula" es deny-by-default (.read/.write = false); cada nodo opta por
+//     permisos explícitos.
+//   - "secrets" y "admins": SOLO admins (root.child('alula/admins/'+auth.uid)).
+//     Ya NO es legible por cualquier autenticado.
+//   - "usuarios"/"roles"/"config": lectura autenticada, escritura solo-admin.
+//   - "preRegistros": escritura pública acotada por esquema (form público) y
+//     lectura solo autenticada.
+//
+// NO DESPLEGAR sin antes completar los follow-ups de migración del front
+// (loadAllData por-nodo, preRegistros, admins/{uid}, etc.). Ver doc de
+// remediación. Este commit versiona y cablea las reglas; el deploy es del dueño.
+{
+  "rules": {
+    "alula": {
+      ".read": false,
+      ".write": false,
+
+      "admins": {
+        ".read": "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isBoolean()"
+        }
+      },
+
+      "preRegistros": {
+        ".read": "auth != null",
+        ".write": false,
+        "$pid": {
+          ".write": "auth != null || (!data.exists() && newData.exists())",
+          ".validate": "newData.hasChildren(['nombre','apellido','dni','nac','pendiente'])",
+          "nombre":          { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
+          "apellido":        { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
+          "dni":             { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 30" },
+          "nac":             { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 60" },
+          "tel":             { ".validate": "newData.isString() && newData.val().length <= 30" },
+          "email":           { ".validate": "newData.isString() && newData.val().length <= 120 && (newData.val().length === 0 || newData.val().matches(/^[^@]+@[^@]+[.][^@]+$/))" },
+          "ciudad":          { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "provincia":       { ".validate": "newData.isString() && newData.val().length <= 80" },
+          "fechaNacimiento": { ".validate": "newData.isString() && newData.val().length <= 10" },
+          "genero":          { ".validate": "newData.isString() && newData.val().length <= 30" },
+          "foto":            { ".validate": "newData.isString() && newData.val().length <= 2000000" },
+          "pendiente":       { ".validate": "newData.isBoolean() && newData.val() === true" },
+          "$other":          { ".validate": false }
+        }
+      },
+
+      "listanegraPublica": {
+        ".read": true,
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
+        "$id": {
+          ".validate": "newData.hasChildren(['nombre','apellido'])",
+          "nombre":   { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
+          "apellido": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
+          "motivo":   { ".validate": "newData.isString() && newData.val().length <= 280" },
+          "nivel":    { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "$other":   { ".validate": false }
+        }
+      },
+
+      "usuarios": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
+      },
+
+      "roles": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
+      },
+
+      "config": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
+      },
+
+      "secrets": {
+        ".read":  "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
+        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
+      },
+
+      "huespedes":    { ".read": "auth != null", ".write": "auth != null" },
+      "reservas":     { ".read": "auth != null", ".write": "auth != null" },
+      "precios":      { ".read": "auth != null", ".write": "auth != null" },
+      "camasConfig":  { ".read": "auth != null", ".write": "auth != null" },
+      "beds":         { ".read": "auth != null", ".write": "auth != null" },
+      "movimientos":  { ".read": "auth != null", ".write": "auth != null" },
+      "cierres":      { ".read": "auth != null", ".write": "auth != null" },
+      "auditoria":    { ".read": "auth != null", ".write": "auth != null" },
+      "aluKnowledge": { ".read": "auth != null", ".write": "auth != null" }
+    }
+  }
+}
