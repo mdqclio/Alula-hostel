@@ -55,19 +55,6 @@
         }
       },
 
-      "listanegraPublica": {
-        ".read": true,
-        ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true",
-        "$id": {
-          ".validate": "newData.hasChildren(['nombre','apellido'])",
-          "nombre":   { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
-          "apellido": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 80" },
-          "motivo":   { ".validate": "newData.isString() && newData.val().length <= 280" },
-          "nivel":    { ".validate": "newData.isString() && newData.val().length <= 20" },
-          "$other":   { ".validate": false }
-        }
-      },
-
       "usuarios": {
         ".read": "auth != null",
         ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"

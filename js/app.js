@@ -28,7 +28,7 @@ import {
   renderCaja, saveMovimiento, cerrarCaja,
   openMovimientoModal, openTransferenciaModal, saveTransferencia, renderSaldos
 } from './caja.js';
-import { renderListaNegra, copyListaNegraLink, checkListaNegraMode } from './listanegra.js';
+import { renderListaNegra } from './listanegra.js';
 import {
   renderRoles, togglePerm, deleteRol, saveRol,
   renderUsuarios, openNuevoUsuario, editUsuario, populateRolSelect, toggleUsuarioEstado, saveUsuario
@@ -102,7 +102,7 @@ Object.assign(window, {
   openMovimientoModal, openTransferenciaModal, saveTransferencia, renderSaldos,
 
   // Lista negra
-  renderListaNegra, copyListaNegraLink,
+  renderListaNegra,
 
   // Usuarios y Roles
   renderRoles, togglePerm, deleteRol, saveRol,
@@ -140,7 +140,6 @@ Object.assign(window, {
 // ===================== INICIALIZACIÓN =====================
 updateDate();
 checkPublicMode();
-checkListaNegraMode();
 
 // Botón formulario público en login
 document.getElementById('btnPublicForm')?.addEventListener('click', showPublicRegistrationForm);
