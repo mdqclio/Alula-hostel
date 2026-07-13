@@ -51,15 +51,29 @@ function showLoader(show) {
   loader.style.display = show ? 'flex' : 'none';
 }
 
+// Nodos top-level conocidos de alula/. Se leen individualmente (en paralelo)
+// para ser compatibles con las reglas default-deny que prohíben leer alula/
+// como un todo. 'secrets' es admin-only en las reglas propuestas: un no-admin
+// recibirá un error de permisos en ese nodo, que se captura sin frenar el resto.
+const KNOWN_NODES = [
+  'config', 'camasConfig', 'reservas', 'huespedes', 'movimientos', 'cierres',
+  'precios', 'beds', 'usuarios', 'roles', 'auditoria', 'aluKnowledge', 'secrets'
+];
+
 export async function loadAllData() {
   showLoader(true);
   try {
-    const snapshot = await get(ref(db, 'alula'));
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      Object.keys(data).forEach(k => cache[k] = data[k]);
-    }
-    // Inicializar aluKnowledge si no existe
+    // Cada nodo en su propio ref, todos en paralelo. Un fallo individual
+    // (p. ej. permisos) no bloquea la carga de los demás.
+    await Promise.all(KNOWN_NODES.map(async (node) => {
+      try {
+        const snap = await get(ref(db, 'alula/' + node));
+        if (snap.exists()) cache[node] = snap.val();
+      } catch (e) {
+        console.warn('[loadAllData] no se pudo leer alula/' + node + ':', e?.message || e);
+      }
+    }));
+    // Inicializar aluKnowledge si no existe (un nodo inexistente queda como [])
     if (cache['aluKnowledge'] === undefined) cache['aluKnowledge'] = [];
     // initData se importa dinámicamente para evitar dependencia circular
     const { initData } = await import('./auth.js');

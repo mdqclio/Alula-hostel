@@ -393,23 +393,25 @@ export async function submitPublicRegistration() {
   const msg = document.getElementById('pub-msg');
   if (!nombre || !apellido || !dni || !nac) { msg.style.color = '#f87171'; msg.textContent = 'Completá los campos obligatorios (*)'; return; }
   try {
-    const { loadAllData } = await import('./firebase-config.js');
-    await loadAllData();
-    const huespedes = DB.get('huespedes', []);
+    // Escribe un único registro a alula/preRegistros (nodo write-only para
+    // anónimos en las reglas propuestas). NO lee ni reescribe huespedes: el
+    // form público no necesita —ni debe poder— leer el árbol completo.
+    const { db } = await import('./firebase-config.js');
+    const { ref, push, set } = await import('https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js');
     const foto = document.getElementById('pubDocPreview').src || null;
-    huespedes.push({
-      id: 'h' + Date.now(), nombre, apellido, dni, nac,
-      tel:            document.getElementById('pub-tel').value,
-      email:          document.getElementById('pub-email').value,
-      ciudad:         document.getElementById('pub-ciudad')?.value.trim() || '',
-      provincia:      document.getElementById('pub-provincia')?.value.trim() || '',
-      fechaNacimiento:document.getElementById('pub-nacimiento')?.value || '',
-      genero:         document.getElementById('pub-genero')?.value || '',
+    const payload = {
+      nombre, apellido, dni, nac,
+      tel:             document.getElementById('pub-tel').value,
+      email:           document.getElementById('pub-email').value,
+      ciudad:          document.getElementById('pub-ciudad')?.value.trim() || '',
+      provincia:       document.getElementById('pub-provincia')?.value.trim() || '',
+      fechaNacimiento: document.getElementById('pub-nacimiento')?.value || '',
+      genero:          document.getElementById('pub-genero')?.value || '',
       foto: foto && foto !== window.location.href ? foto : null,
-      estadias: 0, pendiente: true
-    });
-    await DB.set('huespedes', huespedes);
-    await logAuditoria('crear', 'huesped', huespedes[huespedes.length - 1].id, `Pre-registro público: ${nombre} ${apellido}`, null, null);
+      pendiente: true
+    };
+    const newRef = push(ref(db, 'alula/preRegistros'));
+    await set(newRef, payload);
     msg.style.color = '#34d399';
     msg.textContent = '✅ ¡Datos enviados! El equipo del hostel los confirmará pronto.';
     document.querySelectorAll('#loginScreen input, #loginScreen select').forEach(i => { if (i.type !== 'file') i.value = ''; });
