@@ -1,12 +1,12 @@
 // ===================== CHECKIN SECTION =====================
 import { DB } from './firebase-config.js';
-import { today, fmtMoney } from './helpers.js';
+import { today, fmtMoney, escapeHtml } from './helpers.js';
 import { camaLabel } from './config.js';
 import { doCheckin, doCheckout, openExtender, openPago, openHorario } from './reservas.js';
 
 function getHuespedNombre(id) {
   const h = DB.get('huespedes', []).find(x => x.id === id);
-  return h ? h.nombre + ' ' + h.apellido : id;
+  return escapeHtml(h ? h.nombre + ' ' + h.apellido : id);
 }
 
 export function renderCheckin() {
@@ -44,9 +44,9 @@ export function renderCheckin() {
         const saldo = Number(r.saldo || 0);
         return `<tr>
           <td>${getHuespedNombre(r.huespedId)}</td>
-          <td>${h?.nac || '—'}</td>
+          <td>${escapeHtml(h?.nac || '—')}</td>
           <td>Hab.${r.hab} / C${camaLabel(r.cama)}</td>
-          <td><span style="font-family:'DM Mono';font-size:13px;font-weight:600;color:var(--accent2)">${r.llave || '—'}</span></td>
+          <td><span style="font-family:'DM Mono';font-size:13px;font-weight:600;color:var(--accent2)">${escapeHtml(r.llave || '—')}</span></td>
           <td>${r.entrada}${r.horaCheckin ? ` <span style="color:var(--text3);font-size:11px">${r.horaCheckin}hs</span>` : ''}</td>
           <td>${r.salida}</td>
           <td>${saldo > 0 ? `<span class="badge amber">Debe ${fmtMoney(saldo, r.moneda)}</span>` : `<span class="badge green">Al día</span>`}</td>

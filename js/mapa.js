@@ -1,12 +1,12 @@
 // ===================== MAPA CAMAS =====================
 import { DB } from './firebase-config.js';
-import { today, dateToLocal, fmtMoney, openModal } from './helpers.js';
+import { today, dateToLocal, fmtMoney, openModal, escapeHtml } from './helpers.js';
 import { getConfig, getTotalCamas, habBeds, camaLabel } from './config.js';
 import { nightsBetween } from './helpers.js';
 
 function getHuespedNombre(id) {
   const h = DB.get('huespedes', []).find(x => x.id === id);
-  return h ? h.nombre + ' ' + h.apellido : id;
+  return escapeHtml(h ? h.nombre + ' ' + h.apellido : id);
 }
 
 export function renderMapa(fechaVer) {
@@ -45,7 +45,7 @@ export function renderMapa(fechaVer) {
 
     card.innerHTML = `
       <div class="room-header">
-        <div class="room-title">${habCfg.nombre || 'Hab. ' + hs} <span style="font-size:11px;color:var(--text3)">${beds.length} camas</span></div>
+        <div class="room-title">${escapeHtml(habCfg.nombre || 'Hab. ' + hs)} <span style="font-size:11px;color:var(--text3)">${beds.length} camas</span></div>
         <span class="room-badge ${badgeClass}">${badgeLabel}</span>
       </div>
       <div class="beds-grid">
@@ -121,14 +121,14 @@ export async function cycleBed(bedId) {
     const nights = nightsBetween(resOcupada.entrada, resOcupada.salida);
     document.getElementById('guestDetailContent').innerHTML = `
       <div class="guest-detail" style="margin-bottom:20px">
-        <div class="guest-avatar">${h ? (h.nombre[0] + h.apellido[0]) : '?'}</div>
+        <div class="guest-avatar">${h ? escapeHtml(h.nombre[0] + h.apellido[0]) : '?'}</div>
         <div class="guest-info">
           <h3>${getHuespedNombre(resOcupada.huespedId)}</h3>
           <div class="guest-meta">
             <span class="meta-chip">🛏 Hab.${resOcupada.hab} — Cama ${camaLabel(resOcupada.cama)}</span>
-            ${resOcupada.llave ? `<span class="meta-chip">🔑 Llave: ${resOcupada.llave}</span>` : ''}
-            <span class="meta-chip">🌍 ${h?.nac || '—'}</span>
-            ${h?.tel ? `<span class="meta-chip"><a href="https://wa.me/${h.tel.replace(/\D/g, '')}" target="_blank" style="color:inherit;text-decoration:none;">📱 ${h.tel}</a></span>` : ''}
+            ${resOcupada.llave ? `<span class="meta-chip">🔑 Llave: ${escapeHtml(resOcupada.llave)}</span>` : ''}
+            <span class="meta-chip">🌍 ${escapeHtml(h?.nac || '—')}</span>
+            ${h?.tel ? `<span class="meta-chip"><a href="https://wa.me/${h.tel.replace(/\D/g, '')}" target="_blank" style="color:inherit;text-decoration:none;">📱 ${escapeHtml(h.tel)}</a></span>` : ''}
           </div>
         </div>
       </div>
@@ -156,7 +156,7 @@ export async function cycleBed(bedId) {
           <strong style="color:${saldo > 0 ? '#fbbf24' : '#34d399'}">${saldo > 0 ? fmtMoney(saldo, resOcupada.moneda) : '✓ Al día'}</strong>
         </div>
       </div>
-      ${resOcupada.notas ? `<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:var(--radius);font-size:13px;color:var(--text2)">📝 ${resOcupada.notas}</div>` : ''}
+      ${resOcupada.notas ? `<div style="margin-top:12px;padding:10px;background:var(--surface2);border-radius:var(--radius);font-size:13px;color:var(--text2)">📝 ${escapeHtml(resOcupada.notas)}</div>` : ''}
     `;
     document.querySelector('#modalGuestDetail h2').textContent = '🛏 Cama ' + bedId;
     openModal('modalGuestDetail');

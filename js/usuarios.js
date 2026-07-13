@@ -1,7 +1,7 @@
 // ===================== ROLES Y USUARIOS =====================
 import { DB, auth } from './firebase-config.js';
 import { createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-import { showNotif, openModal, closeModal } from './helpers.js';
+import { showNotif, openModal, closeModal, escapeHtml } from './helpers.js';
 import { currentUser } from './auth.js';
 import { logAuditoria } from './auditoria.js';
 
@@ -18,7 +18,7 @@ export function renderRoles() {
   const grid = document.getElementById('rolesGrid');
   grid.innerHTML = roles.map(r => `
     <div class="role-card">
-      <h4>${r.nombre} ${r.id === 'rol-admin' ? '<span class="badge blue" style="font-size:10px">Admin</span>' : ''}</h4>
+      <h4>${escapeHtml(r.nombre)} ${r.id === 'rol-admin' ? '<span class="badge blue" style="font-size:10px">Admin</span>' : ''}</h4>
       <div class="perm-list">
         ${MODULES.map(m => {
           const perm = r.permisos[m] || 'n';
@@ -98,9 +98,9 @@ export function renderUsuarios() {
           : '—';
         const isSelf = currentUser.value && currentUser.value.id === u.id;
         return `<tr>
-          <td><strong style="color:var(--text)">${u.nombre}</strong>${isSelf ? ' <span class="badge blue" style="font-size:10px">Vos</span>' : ''}</td>
-          <td style="font-family:'DM Mono';font-size:12px">${u.email}</td>
-          <td>${rol ? `<span class="badge blue">${rol.nombre}</span>` : '—'}</td>
+          <td><strong style="color:var(--text)">${escapeHtml(u.nombre)}</strong>${isSelf ? ' <span class="badge blue" style="font-size:10px">Vos</span>' : ''}</td>
+          <td style="font-family:'DM Mono';font-size:12px">${escapeHtml(u.email)}</td>
+          <td>${rol ? `<span class="badge blue">${escapeHtml(rol.nombre)}</span>` : '—'}</td>
           <td><span class="badge ${u.estado === 'activo' ? 'green' : 'gray'}">${u.estado}</span></td>
           <td style="font-size:12px;color:var(--text3)">${lastAccess}</td>
           <td style="display:flex;gap:6px">
@@ -143,7 +143,7 @@ export function editUsuario(id) {
 export function populateRolSelect(selected) {
   const roles = DB.get('roles', []);
   document.getElementById('u-rol').innerHTML = roles.map(r =>
-    `<option value="${r.id}" ${r.id === selected ? 'selected' : ''}>${r.nombre}</option>`
+    `<option value="${r.id}" ${r.id === selected ? 'selected' : ''}>${escapeHtml(r.nombre)}</option>`
   ).join('');
 }
 

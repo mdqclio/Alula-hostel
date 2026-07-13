@@ -1,6 +1,6 @@
 // ===================== GRILLA DE RESERVAS =====================
 import { DB } from './firebase-config.js';
-import { today, dateToLocal, fmtMoney } from './helpers.js';
+import { today, dateToLocal, fmtMoney, escapeHtml } from './helpers.js';
 import { getConfig, habBeds, getMonedas } from './config.js';
 import { cotizar } from './services/cotizador.service.js';
 
@@ -10,7 +10,7 @@ const GRILLA_DIAS = 14;
 
 function getHuespedNombre(id) {
   const h = DB.get('huespedes', []).find(x => x.id === id);
-  return h ? h.nombre + ' ' + h.apellido : id;
+  return escapeHtml(h ? h.nombre + ' ' + h.apellido : id);
 }
 
 export function grillaHoy() {
@@ -181,11 +181,11 @@ function renderOperativa() {
     if (beds.length === 0) continue;
 
     const inactiveTag = !hab.activa
-      ? ` <span style="color:#f59e0b;font-size:11px;font-weight:500;">(inactiva${hab.nota ? ': ' + hab.nota : ''})</span>`
+      ? ` <span style="color:#f59e0b;font-size:11px;font-weight:500;">(inactiva${hab.nota ? ': ' + escapeHtml(hab.nota) : ''})</span>`
       : '';
 
     // Fila separador de habitación
-    html += `<tr class="grilla-hab-header"><td colspan="${fechas.length + 1}">${hab.nombre} (${beds.length} camas)${inactiveTag}</td></tr>`;
+    html += `<tr class="grilla-hab-header"><td colspan="${fechas.length + 1}">${escapeHtml(hab.nombre)} (${beds.length} camas)${inactiveTag}</td></tr>`;
 
     beds.forEach(b => {
       html += `<tr><td class="cama-label">Cama ${b.label}</td>`;

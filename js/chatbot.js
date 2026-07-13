@@ -150,7 +150,7 @@ export function showQuickReplies() {
   const c = document.getElementById('chatQuickBtns');
   if (!c) return;
   c.innerHTML = getChatQuickReplies().map(r =>
-    `<button class="chat-quick-btn" onclick="sendQuickReply('${r.msg.replace(/'/g, "&#39;")}')">${r.label}</button>`
+    `<button class="chat-quick-btn" onclick="sendQuickReply('${r.msg.replace(/'/g, "&#39;")}')">${escapeHtml(r.label)}</button>`
   ).join('');
 }
 

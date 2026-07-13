@@ -1,11 +1,11 @@
 // ===================== DASHBOARD =====================
 import { DB } from './firebase-config.js';
-import { today, fmtMoney, platBadge, pagoBadge, dateToLocal } from './helpers.js';
+import { today, fmtMoney, platBadge, pagoBadge, dateToLocal, escapeHtml } from './helpers.js';
 import { getTotalCamas, camaLabel } from './config.js';
 
 function getHuespedNombre(id) {
   const h = DB.get('huespedes', []).find(x => x.id === id);
-  return h ? h.nombre + ' ' + h.apellido : id;
+  return escapeHtml(h ? h.nombre + ' ' + h.apellido : id);
 }
 
 export function renderDashboard() {

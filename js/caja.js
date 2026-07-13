@@ -22,7 +22,7 @@ function populateCategoriasSelect(selectId, tipo) {
   const cat = getCategorias();
   const opts = tipo === 'ingreso' ? cat.ingresos : cat.egresos;
   const el = document.getElementById(selectId);
-  if (el) el.innerHTML = opts.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (el) el.innerHTML = opts.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
 }
 
 function popularCuentasSelect(selectId) {

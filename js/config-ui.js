@@ -1,6 +1,6 @@
 // ===================== CONFIGURACIÓN =====================
 import { DB } from './firebase-config.js';
-import { showNotif, openModal, closeModal } from './helpers.js';
+import { showNotif, openModal, closeModal, escapeHtml } from './helpers.js';
 import { getConfig, CONFIG_DEFAULTS, getTotalCamas, getCategorias, getCuentas, getMetodosPago, getPlataformas, getMonedas, getChatQuickReplies, getCamasConfig, getCamaAttrs, DEFAULT_CAMA_ATTRS, habBeds } from './config.js';
 import { calcularScoreCama } from './services/camas.service.js';
 import { logAuditoria } from './auditoria.js';
@@ -11,7 +11,7 @@ function _periodoLabel(p) {
   const rango = p.tipo === 'anual'
     ? `Cada año: ${p.desde} al ${p.hasta}`
     : `${p.desde} al ${p.hasta}`;
-  return p.nombre ? `<strong>${p.nombre}</strong> — ${rango}` : rango;
+  return p.nombre ? `<strong>${escapeHtml(p.nombre)}</strong> — ${rango}` : rango;
 }
 
 // ===== RENDER PRINCIPAL =====
@@ -43,7 +43,7 @@ function _sectionHostel() {
     <div style="padding:16px 20px 8px;">
       <div class="form-group" style="max-width:280px;margin-bottom:16px;">
         <label>Nombre del hostel</label>
-        <input type="text" id="cfg-nombre" value="${cfg.hostel.nombre}" style="${inp}">
+        <input type="text" id="cfg-nombre" value="${escapeHtml(cfg.hostel.nombre)}" style="${inp}">
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <thead><tr style="border-bottom:1px solid var(--border);">
@@ -58,10 +58,10 @@ function _sectionHostel() {
           ${cfg.hostel.habitaciones.map((h, i) => `
           <tr style="border-bottom:1px solid var(--border);${!h.activa ? 'opacity:0.5' : ''}">
             <td style="padding:8px;color:var(--text3);font-size:12px;">Hab. ${h.id}</td>
-            <td style="padding:8px;"><input type="text" value="${h.nombre}" id="cfg-hab-nombre-${i}" style="${inp}padding:5px 8px;"></td>
+            <td style="padding:8px;"><input type="text" value="${escapeHtml(h.nombre)}" id="cfg-hab-nombre-${i}" style="${inp}padding:5px 8px;"></td>
             <td style="padding:8px;text-align:center;"><input type="number" value="${h.camas}" id="cfg-hab-camas-${i}" min="0" max="30" style="${inp}padding:5px 8px;width:70px;text-align:center;"></td>
             <td style="padding:8px;text-align:center;"><input type="checkbox" id="cfg-hab-activa-${i}" ${h.activa ? 'checked' : ''} style="width:16px;height:16px;cursor:pointer;"></td>
-            <td style="padding:8px;"><input type="text" value="${h.nota || ''}" id="cfg-hab-nota-${i}" placeholder="En obras..." style="${inp}padding:5px 8px;"></td>
+            <td style="padding:8px;"><input type="text" value="${escapeHtml(h.nota || '')}" id="cfg-hab-nota-${i}" placeholder="En obras..." style="${inp}padding:5px 8px;"></td>
             <td style="padding:8px;"><button class="btn btn-red btn-sm" style="padding:3px 8px;font-size:11px;" onclick="removeHabitacion(${i})">✕</button></td>
           </tr>`).join('')}
         </tbody>
@@ -87,14 +87,14 @@ function _sectionTemporadas() {
     return `
     <div class="card">
       <div class="card-header" style="border-bottom-color:${borderColors[tipo]}">
-        <h3 style="color:${textColors[tipo]}">💲 ${t.nombre}</h3>
+        <h3 style="color:${textColors[tipo]}">💲 ${escapeHtml(t.nombre)}</h3>
         <span style="font-size:12px;color:var(--text3)">${periodos.length} período(s)</span>
       </div>
       <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:20px;">
         <div>
           <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:${textColors[tipo]};font-weight:600;margin-bottom:14px;">Precio base</div>
           <div class="form-group" style="margin-bottom:10px;"><label style="font-size:11px;">Nombre</label>
-            <input type="text" id="cfg-t-${tipo}-nombre" value="${t.nombre}" style="${inp}"></div>
+            <input type="text" id="cfg-t-${tipo}-nombre" value="${escapeHtml(t.nombre)}" style="${inp}"></div>
           <div class="form-group" style="margin-bottom:10px;"><label style="font-size:11px;">Precio por noche</label>
             <input type="number" id="cfg-t-${tipo}-precio" value="${t.precio}" min="0" style="${inp}"></div>
           <div class="form-group" style="margin-bottom:14px;"><label style="font-size:11px;">Moneda</label>
@@ -176,7 +176,7 @@ function _sectionCategorias() {
   const cat = getCategorias();
   const lista = (items, tipo) => items.map((c, i) => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:13px;">${c}</span>
+      <span style="font-size:13px;">${escapeHtml(c)}</span>
       <button class="btn btn-red btn-sm" style="padding:2px 7px;font-size:11px;" onclick="deleteCategoriaContable('${tipo}',${i})">✕</button>
     </div>`).join('');
   return `
@@ -219,10 +219,10 @@ function _sectionCuentas() {
       </tr></thead>
       <tbody>
         ${cuentas.map(c => `<tr style="${!c.activa ? 'opacity:0.5' : ''}">
-          <td><strong>${tipoIcon[c.tipo] || '💰'} ${c.nombre}</strong></td>
+          <td><strong>${tipoIcon[c.tipo] || '💰'} ${escapeHtml(c.nombre)}</strong></td>
           <td style="text-transform:capitalize;font-size:12px;color:var(--text2)">${c.tipo}</td>
           <td><span class="badge ${c.moneda === 'USD' ? 'green' : 'blue'}">${c.moneda}</span></td>
-          <td style="font-size:12px;color:var(--text3)">${c.responsable || '—'}</td>
+          <td style="font-size:12px;color:var(--text3)">${escapeHtml(c.responsable || '—')}</td>
           <td style="font-size:12px">${c.moneda === 'USD' ? 'USD ' : '$'}${Number(c.saldoInicial || 0).toLocaleString('es-AR')}${c.fechaSaldoInicial ? ' ('+c.fechaSaldoInicial+')' : ''}</td>
           <td><span class="badge ${c.activa ? 'green' : 'gray'}">${c.activa ? 'activa' : 'inactiva'}</span></td>
           <td style="display:flex;gap:4px;">
@@ -244,7 +244,7 @@ function _sectionMetodos() {
     <div style="padding:16px 20px;">
       ${metodos.map((m, i) => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13px;">${m.nombre} <span style="font-size:11px;color:var(--text3)">(id: ${m.id})</span></span>
+          <span style="font-size:13px;">${escapeHtml(m.nombre)} <span style="font-size:11px;color:var(--text3)">(id: ${escapeHtml(m.id)})</span></span>
           <button class="btn btn-red btn-sm" style="padding:2px 7px;font-size:11px;" onclick="deleteMetodoPago(${i})">✕</button>
         </div>`).join('')}
       <div style="display:flex;gap:8px;margin-top:12px;">
@@ -265,7 +265,7 @@ function _sectionPlataformas() {
     <div style="padding:16px 20px;">
       ${plats.map((p, i) => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13px;">${p.nombre} <span style="font-size:11px;color:var(--text3)">(id: ${p.id})</span></span>
+          <span style="font-size:13px;">${escapeHtml(p.nombre)} <span style="font-size:11px;color:var(--text3)">(id: ${p.id})</span></span>
           <button class="btn btn-red btn-sm" style="padding:2px 7px;font-size:11px;" onclick="deletePlataforma(${i})">✕</button>
         </div>`).join('')}
       <div style="display:flex;gap:8px;margin-top:12px;">
@@ -285,7 +285,7 @@ function _sectionMonedas() {
     <div style="padding:16px 20px;">
       ${monedas.map((m, i) => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13px;"><strong>${m.code}</strong> ${m.symbol} — ${m.nombre}</span>
+          <span style="font-size:13px;"><strong>${escapeHtml(m.code)}</strong> ${escapeHtml(m.symbol)} — ${escapeHtml(m.nombre)}</span>
           <button class="btn btn-red btn-sm" style="padding:2px 7px;font-size:11px;" onclick="deleteMoneda(${i})">✕</button>
         </div>`).join('')}
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
@@ -307,7 +307,7 @@ function _sectionQuickReplies() {
     <div style="padding:16px 20px;">
       ${qr.map((r, i) => `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13px;"><strong>${r.label}</strong> → ${r.msg}</span>
+          <span style="font-size:13px;"><strong>${escapeHtml(r.label)}</strong> → ${escapeHtml(r.msg)}</span>
           <button class="btn btn-red btn-sm" style="padding:2px 7px;font-size:11px;" onclick="deleteQuickReply(${i})">✕</button>
         </div>`).join('')}
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
@@ -403,7 +403,7 @@ export function removeHabitacion(i) {
   const cfg = getConfig();
   const h = cfg.hostel.habitaciones[i];
   const nombre = h ? h.nombre : `Habitación #${i + 1}`;
-  document.getElementById('confirmDeleteMsg').innerHTML = `¿Eliminar <strong>${nombre}</strong>? Esta acción no se puede deshacer.`;
+  document.getElementById('confirmDeleteMsg').innerHTML = `¿Eliminar <strong>${escapeHtml(nombre)}</strong>? Esta acción no se puede deshacer.`;
   const btn = document.getElementById('confirmDeleteBtn');
   btn.onclick = async () => {
     const stored = DB.get('config', {});
@@ -534,7 +534,7 @@ export async function saveCuentaCfg() {
 }
 
 export function deleteCuentaCfg(id, nombre) {
-  document.getElementById('confirmDeleteMsg').innerHTML = `¿Eliminar la cuenta <strong>${nombre}</strong>? Los movimientos asociados quedarán sin cuenta asignada.`;
+  document.getElementById('confirmDeleteMsg').innerHTML = `¿Eliminar la cuenta <strong>${escapeHtml(nombre)}</strong>? Los movimientos asociados quedarán sin cuenta asignada.`;
   const btn = document.getElementById('confirmDeleteBtn');
   btn.onclick = async () => {
     const stored = DB.get('config', {});
@@ -692,7 +692,7 @@ function _sectionCamas() {
     return `<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:8px 6px;white-space:nowrap;">
         <strong style="font-size:13px;">Cama ${c.label}</strong>
-        <span style="display:block;font-size:11px;color:var(--text3);">${c.habNombre}</span>
+        <span style="display:block;font-size:11px;color:var(--text3);">${escapeHtml(c.habNombre)}</span>
       </td>
       <td style="padding:6px;">${s('tipo', a.tipo, [['abajo','Abajo'],['arriba','Arriba']])}</td>
       <td style="padding:6px;">${s('vista', a.vista, [['ninguna','Ninguna'],['parcial','Parcial'],['mar','Al mar']])}</td>
