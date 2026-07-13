@@ -1,6 +1,6 @@
 // ===================== DASHBOARD =====================
 import { DB } from './firebase-config.js';
-import { today, fmtMoney, platBadge, pagoBadge } from './helpers.js';
+import { today, fmtMoney, platBadge, pagoBadge, dateToLocal } from './helpers.js';
 import { getTotalCamas, camaLabel } from './config.js';
 
 function getHuespedNombre(id) {
@@ -55,7 +55,6 @@ export function onEntradaChange() {
   if (entrada) {
     const _nd = new Date(entrada + 'T12:00:00');
     _nd.setDate(_nd.getDate() + 1);
-    const { dateToLocal } = require('./helpers.js');
     salidaEl.min = dateToLocal(_nd);
     if (salidaEl.value && salidaEl.value <= entrada) salidaEl.value = salidaEl.min;
     // Auto-sugerir precio según temporada detectada
