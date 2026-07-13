@@ -83,7 +83,7 @@ export function showGuestDetail(id) {
         ${h.obs ? `<p style="font-size:12px;color:var(--amber);margin-top:8px;">📝 ${escapeHtml(h.obs)}</p>` : ''}
       </div>
     </div>
-    ${h.foto ? `<div style="margin-bottom:16px"><p style="font-size:12px;color:var(--text3);margin-bottom:6px">Documento:</p><img src="${h.foto}" style="max-width:100%;border-radius:8px;max-height:160px"></div>` : ''}
+    ${h.foto ? `<div style="margin-bottom:16px"><p style="font-size:12px;color:var(--text3);margin-bottom:6px">Documento:</p><img src="${escapeHtml(h.foto)}" style="max-width:100%;border-radius:8px;max-height:160px"></div>` : ''}
     <p style="font-size:12px;color:var(--text3);margin-bottom:8px">Historial de reservas:</p>
     <table><thead><tr><th>Entrada</th><th>Salida</th><th>Hab.</th><th>Total</th><th>Estado</th></tr></thead>
     <tbody>${reservas.map(r => `<tr>

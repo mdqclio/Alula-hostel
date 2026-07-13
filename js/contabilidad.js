@@ -53,10 +53,10 @@ export function renderAcct(tab) {
           ? filtered.sort((a, b) => b.fecha > a.fecha ? 1 : -1).map(m => `<tr>
               <td style="font-family:'DM Mono';font-size:12px">${m.fecha}</td>
               <td>${escapeHtml(m.concepto)}</td>
-              <td><span class="badge ${m.tipo === 'ingreso' ? 'green' : 'red'}">${m.cat || '—'}</span></td>
+              <td><span class="badge ${m.tipo === 'ingreso' ? 'green' : 'red'}">${escapeHtml(m.cat || '—')}</span></td>
               <td style="font-size:12px;color:var(--text3)">${escapeHtml(getCuentaNombre(m.cuenta))}</td>
               <td style="font-weight:500;color:${m.tipo === 'ingreso' ? '#34d399' : '#f87171'}">${m.tipo === 'ingreso' ? '+' : '-'}${fmtMoney(m.monto, m.moneda)}</td>
-              <td style="font-size:12px;color:var(--text3)">${m.metodo || '—'}</td>
+              <td style="font-size:12px;color:var(--text3)">${escapeHtml(m.metodo || '—')}</td>
             </tr>`).join('')
           : '<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin movimientos</td></tr>'
         }</tbody>
@@ -92,7 +92,7 @@ function renderReportes() {
             <label>Cuenta</label>
             <select id="rep-cuenta" style="${inp}">
               <option value="">Todas</option>
-              ${getCuentas().map(c => `<option value="${c.id}">${escapeHtml(c.nombre)} (${c.moneda})</option>`).join('')}
+              ${getCuentas().map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)} (${escapeHtml(c.moneda)})</option>`).join('')}
             </select>
           </div>
           <div class="form-group" style="margin:0;min-width:110px;">
@@ -175,12 +175,12 @@ export function aplicarFiltroReportes() {
     ? movs.map(m => `<tr>
         <td style="font-family:'DM Mono';font-size:12px">${m.fecha}</td>
         <td style="font-size:12px">${escapeHtml(getCuentaNombre(m.cuenta))}</td>
-        <td><span class="badge ${m.tipo === 'ingreso' ? 'green' : 'red'}">${m.cat || '—'}</span></td>
+        <td><span class="badge ${m.tipo === 'ingreso' ? 'green' : 'red'}">${escapeHtml(m.cat || '—')}</span></td>
         <td style="font-size:13px">${escapeHtml(m.concepto)}</td>
         <td style="font-size:12px;text-align:center">${m.tipo === 'ingreso' ? '↑' : '↓'}</td>
         <td style="font-weight:500;color:${m.tipo === 'ingreso' ? '#34d399' : '#f87171'}">${m.tipo === 'ingreso' ? '+' : '-'}${fmtMoney(m.monto, m.moneda)}</td>
         <td style="font-size:11px;color:var(--text3)">${m.tcARS ? '$'+Number(m.tcARS).toLocaleString('es-AR') : '—'}</td>
-        <td style="font-size:12px;color:var(--text3)">${m.metodo || '—'}</td>
+        <td style="font-size:12px;color:var(--text3)">${escapeHtml(m.metodo || '—')}</td>
       </tr>`).join('')
     : '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin movimientos en el período</td></tr>';
 }
