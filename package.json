@@ -2,7 +2,7 @@
   "name": "alula-hostel",
   "version": "1.0.0",
   "description": "",
-  "main": "grilla.js",
+  "main": "js/app.js",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest"
