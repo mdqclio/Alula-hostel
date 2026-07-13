@@ -431,7 +431,7 @@ export function showPublicRegistrationForm() {
         <div class="form-group"><label>Provincia/Estado</label><input type="text" id="pub-provincia" placeholder="Buenos Aires"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Fecha de nacimiento</label><input type="date" id="pub-nacimiento"></div>
+        <div class="form-group"><label>Fecha de nacimiento *</label><input type="date" id="pub-nacimiento"></div>
         <div class="form-group"><label>Género</label>
           <select id="pub-genero" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:9px 12px;width:100%;font-size:13px;">
             <option value="">No especificado</option>
@@ -482,8 +482,23 @@ export async function submitPublicRegistration() {
   const apellido = document.getElementById('pub-apellido').value.trim();
   const dni = document.getElementById('pub-dni').value.trim();
   const nac = document.getElementById('pub-nac').value.trim();
+  const nacimiento = document.getElementById('pub-nacimiento')?.value || '';
   const msg = document.getElementById('pub-msg');
-  if (!nombre || !apellido || !dni || !nac) { msg.style.color = '#f87171'; msg.textContent = 'Completá los campos obligatorios (*)'; return; }
+  if (!nombre || !apellido || !dni || !nac || !nacimiento) { msg.style.color = '#f87171'; msg.textContent = 'Completá los campos obligatorios (*)'; return; }
+  // Mayoría de edad. Parseamos con 'T12:00:00' para evitar que YYYY-MM-DD se
+  // interprete como UTC (patrón que ya usa el codebase). Edad por año/mes/día,
+  // no por milisegundos/365.
+  const hoy = new Date();
+  const fnac = new Date(nacimiento + 'T12:00:00');
+  let edad = hoy.getFullYear() - fnac.getFullYear();
+  const difMes = hoy.getMonth() - fnac.getMonth();
+  if (difMes < 0 || (difMes === 0 && hoy.getDate() < fnac.getDate())) edad--;
+  if (isNaN(fnac.getTime()) || edad < 0 || edad > 120) {
+    msg.style.color = '#f87171'; msg.textContent = 'Ingresá una fecha de nacimiento válida.'; return;
+  }
+  if (edad < 18) {
+    msg.style.color = '#f87171'; msg.textContent = 'El registro es solo para mayores de 18 años.'; return;
+  }
   try {
     // Escribe un único registro a alula/preRegistros (nodo write-only para
     // anónimos en las reglas propuestas). NO lee ni reescribe huespedes: el
