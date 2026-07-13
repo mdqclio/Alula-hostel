@@ -519,10 +519,15 @@ export async function submitPublicRegistration() {
     };
     const newRef = push(ref(db, 'alula/preRegistros'));
     await set(newRef, payload);
-    msg.style.color = '#34d399';
-    msg.textContent = '✅ ¡Datos enviados! El equipo del hostel los confirmará pronto.';
-    document.querySelectorAll('#loginScreen input, #loginScreen select').forEach(i => { if (i.type !== 'file') i.value = ''; });
-    document.getElementById('pubDocPreview').style.display = 'none';
+    // Éxito: reemplazamos TODO el contenido del form por una pantalla de
+    // confirmación, sin campos ni botón, para que no quede nada reenviable.
+    document.getElementById('loginScreen').innerHTML = `
+      <div class="login-box" style="width:480px;text-align:center;">
+        <div class="login-logo"><h1>🏨 Alula Hostel</h1></div>
+        <div style="font-size:52px;margin:16px 0 8px;">✅</div>
+        <h2 style="color:var(--text);font-size:19px;margin-bottom:8px;">¡Datos enviados!</h2>
+        <p style="color:var(--text3);font-size:14px;line-height:1.5;">El equipo del hostel los confirmará al llegar.</p>
+      </div>`;
   } catch(e) {
     msg.style.color = '#f87171';
     msg.textContent = 'Error al enviar. Intentá de nuevo.';
