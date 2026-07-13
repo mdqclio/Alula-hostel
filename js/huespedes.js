@@ -1,5 +1,5 @@
 // ===================== HUÉSPEDES =====================
-import { DB } from './firebase-config.js';
+import { DB, db } from './firebase-config.js';
 import { showNotif, openModal, closeModal, fmtMoney, estadoBadge, nightsBetween, escapeHtml } from './helpers.js';
 import { logAuditoria } from './auditoria.js';
 
@@ -58,6 +58,98 @@ export function renderHuespedes() {
         </td>
       </tr>`).join('')
     : '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin huéspedes</td></tr>';
+
+  renderPreRegistros();
+}
+
+// ===================== PRE-REGISTROS (revisión) =====================
+// Los pre-registros llegan del formulario público (sin auth) al nodo
+// alula/preRegistros. Es EL input hostil del sistema: TODO dato renderizado
+// pasa por escapeHtml. Aprobar crea el huésped (mismo shape que saveHuesped);
+// rechazar lo descarta. Ambas acciones eliminan el child con remove().
+export function renderPreRegistros() {
+  const box = document.getElementById('preRegistrosBox');
+  if (!box) return;
+  const pre = DB.get('preRegistros', {}) || {};
+  const entries = Object.entries(pre).filter(([, v]) => v && typeof v === 'object');
+  if (!entries.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `
+    <div class="card" style="margin-bottom:16px;border:1px solid rgba(245,158,11,0.35);">
+      <div class="card-header">
+        <h3>📥 Pre-registros pendientes (${entries.length})</h3>
+        <span style="font-size:12px;color:var(--text3)">Enviados desde el formulario público</span>
+      </div>
+      <table>
+        <thead><tr><th>Nombre</th><th>Apellido</th><th>DNI</th><th>Fecha nac.</th><th>Acciones</th></tr></thead>
+        <tbody>${entries.map(([pid, p]) => `<tr>
+          <td><strong style="color:var(--text)">${escapeHtml(p.nombre || '—')}</strong></td>
+          <td>${escapeHtml(p.apellido || '—')}</td>
+          <td style="font-family:'DM Mono';font-size:12px">${escapeHtml(p.dni || '—')}</td>
+          <td>${escapeHtml(p.fechaNacimiento || '—')}</td>
+          <td style="display:flex;gap:6px">
+            <button class="btn btn-green btn-sm" onclick="aprobarPreRegistro('${escapeHtml(pid)}')">✓ Aprobar</button>
+            <button class="btn btn-red btn-sm" onclick="rechazarPreRegistro('${escapeHtml(pid)}')">✕ Rechazar</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+}
+
+async function removePreRegistro(pid) {
+  const { ref, remove } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js");
+  await remove(ref(db, 'alula/preRegistros/' + pid));
+  // Mantener el cache local en sync (DB.get devuelve la referencia viva; no se
+  // puede DB.set el nodo completo porque alula/preRegistros es .write:false).
+  const pre = DB.get('preRegistros', null);
+  if (pre && typeof pre === 'object') delete pre[pid];
+}
+
+export async function aprobarPreRegistro(pid) {
+  const pre = DB.get('preRegistros', {}) || {};
+  const p = pre[pid];
+  if (!p) return;
+  const huespedes = DB.get('huespedes', []);
+  const nuevoH = {
+    id: 'h' + Date.now(),
+    nombre:          p.nombre || '',
+    apellido:        p.apellido || '',
+    dni:             p.dni || '',
+    nac:             p.nac || '',
+    tel:             p.tel || '',
+    email:           p.email || '',
+    ciudad:          p.ciudad || '',
+    provincia:       p.provincia || '',
+    fechaNacimiento: p.fechaNacimiento || '',
+    genero:          p.genero || '',
+    foto:            p.foto || null,
+    estadias: 0
+  };
+  huespedes.push(nuevoH);
+  await DB.set('huespedes', huespedes);
+  try {
+    await removePreRegistro(pid);
+  } catch (e) {
+    console.warn('[preRegistros] no se pudo eliminar tras aprobar:', e?.message || e);
+  }
+  logAuditoria('crear', 'huesped', nuevoH.id, `Pre-registro aprobado: ${nuevoH.nombre} ${nuevoH.apellido} — DNI ${nuevoH.dni}`, null, { nombre: nuevoH.nombre, apellido: nuevoH.apellido, dni: nuevoH.dni });
+  renderHuespedes();
+  showNotif('Huésped aprobado: ' + nuevoH.nombre + ' ' + nuevoH.apellido);
+}
+
+export async function rechazarPreRegistro(pid) {
+  const pre = DB.get('preRegistros', {}) || {};
+  const p = pre[pid];
+  if (!p) return;
+  try {
+    await removePreRegistro(pid);
+  } catch (e) {
+    console.warn('[preRegistros] no se pudo eliminar al rechazar:', e?.message || e);
+    showNotif('No se pudo rechazar el pre-registro', 'error');
+    return;
+  }
+  logAuditoria('eliminar', 'preRegistro', pid, `Pre-registro rechazado: ${p.nombre || ''} ${p.apellido || ''} — DNI ${p.dni || ''}`);
+  renderPreRegistros();
+  showNotif('Pre-registro rechazado');
 }
 
 export function showGuestDetail(id) {

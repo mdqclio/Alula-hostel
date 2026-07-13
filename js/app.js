@@ -21,7 +21,8 @@ import {
   openEditHuesped, saveEditHuesped, confirmDelete, deleteHuesped,
   renderScoreStars, setScore, getScoreBadge,
   showPublicFormLink, copyPublicLink, openPublicFormPreview,
-  checkPublicMode, showPublicRegistrationForm, previewPubDoc, submitPublicRegistration
+  checkPublicMode, showPublicRegistrationForm, previewPubDoc, submitPublicRegistration,
+  aprobarPreRegistro, rechazarPreRegistro
 } from './huespedes.js';
 import { renderAcct, switchAcctTab, aplicarFiltroReportes, exportarReporteCSV } from './contabilidad.js';
 import {
@@ -93,6 +94,7 @@ Object.assign(window, {
   renderScoreStars, setScore, getScoreBadge,
   showPublicFormLink, copyPublicLink, openPublicFormPreview,
   showPublicRegistrationForm, previewPubDoc, submitPublicRegistration,
+  aprobarPreRegistro, rechazarPreRegistro,
 
   // Contabilidad
   renderAcct, switchAcctTab, aplicarFiltroReportes, exportarReporteCSV,

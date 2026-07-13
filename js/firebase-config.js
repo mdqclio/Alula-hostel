@@ -58,7 +58,7 @@ function showLoader(show) {
 const KNOWN_NODES = [
   'config', 'camasConfig', 'reservas', 'huespedes', 'movimientos', 'cierres',
   'precios', 'beds', 'usuarios', 'roles', 'auditoria', 'aluKnowledge', 'secrets',
-  'ultimoAcceso'
+  'ultimoAcceso', 'preRegistros'
 ];
 
 export async function loadAllData() {
