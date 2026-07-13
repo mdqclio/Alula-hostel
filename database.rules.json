@@ -75,6 +75,11 @@
         ".write": "auth != null && root.child('alula/admins/'+auth.uid).val() === true"
       },
 
+      "ultimoAcceso": {
+        ".read": "auth != null",
+        "$uid": { ".write": "auth != null && auth.uid === $uid" }
+      },
+
       "huespedes":    { ".read": "auth != null", ".write": "auth != null" },
       "reservas":     { ".read": "auth != null", ".write": "auth != null" },
       "precios":      { ".read": "auth != null", ".write": "auth != null" },

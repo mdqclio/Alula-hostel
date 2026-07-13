@@ -79,8 +79,19 @@ export async function doLogin() {
     const u = usuarios.find(x => x.email.toLowerCase() === email.toLowerCase());
     if (!u) { await signOut(auth); showLoginError('Usuario no registrado en el sistema'); return; }
     if (u.estado === 'inactivo') { await signOut(auth); showLoginError('Usuario inactivo. Contactá al administrador'); return; }
-    u.ultimoAcceso = new Date().toISOString();
-    await DB.set('usuarios', usuarios);
+    // ultimoAcceso vive en su propio nodo alula/ultimoAcceso/<uid> (write solo
+    // por su dueño, ver reglas). Antes se bumpeaba reescribiendo el array
+    // usuarios completo, lo que rompería con usuarios write solo-admin.
+    // Best-effort: un fallo de permisos no debe abortar el login.
+    const bumpUid = auth.currentUser?.uid;
+    if (bumpUid) {
+      try {
+        const { ref, set } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js");
+        await set(ref(db, 'alula/ultimoAcceso/' + bumpUid), new Date().toISOString());
+      } catch (e) {
+        console.warn('[ultimoAcceso] no se pudo actualizar:', e?.message || e);
+      }
+    }
     const roles = DB.get('roles', []);
     const rol = roles.find(r => r.id === u.rol);
     const rolKey = rolToKey(u.rol);

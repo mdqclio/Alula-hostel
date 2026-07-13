@@ -57,7 +57,8 @@ function showLoader(show) {
 // recibirá un error de permisos en ese nodo, que se captura sin frenar el resto.
 const KNOWN_NODES = [
   'config', 'camasConfig', 'reservas', 'huespedes', 'movimientos', 'cierres',
-  'precios', 'beds', 'usuarios', 'roles', 'auditoria', 'aluKnowledge', 'secrets'
+  'precios', 'beds', 'usuarios', 'roles', 'auditoria', 'aluKnowledge', 'secrets',
+  'ultimoAcceso'
 ];
 
 export async function loadAllData() {

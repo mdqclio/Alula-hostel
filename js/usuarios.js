@@ -90,11 +90,15 @@ export function saveRol() {
 export function renderUsuarios() {
   const usuarios = DB.get('usuarios', []);
   const roles = DB.get('roles', []);
+  // ultimoAcceso ahora vive en alula/ultimoAcceso/<uid>. Mapeamos por uid;
+  // fallback al campo legacy del usuario (usuarios viejos) y a '—'.
+  const accesos = DB.get('ultimoAcceso', {}) || {};
   document.getElementById('tablaUsuarios').innerHTML = usuarios.length
     ? usuarios.map(u => {
         const rol = roles.find(r => r.id === u.rol);
-        const lastAccess = u.ultimoAcceso
-          ? new Date(u.ultimoAcceso).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        const ultimo = (u.uid && accesos[u.uid]) || u.ultimoAcceso;
+        const lastAccess = ultimo
+          ? new Date(ultimo).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
           : '—';
         const isSelf = currentUser.value && currentUser.value.id === u.id;
         return `<tr>
@@ -192,8 +196,10 @@ export async function saveUsuario() {
     if (pass.length < 6) { showNotif('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
     if (pass !== pass2) { showNotif('Las contraseñas no coinciden', 'error'); return; }
     try {
-      await createUserWithEmailAndPassword(auth, email, pass);
-      const nuevoU = { id: 'u' + Date.now(), nombre, email, rol, estado, ultimoAcceso: null };
+      const cred = await createUserWithEmailAndPassword(auth, email, pass);
+      // Guardamos el uid de Firebase Auth para poder mapear el usuario a su
+      // nodo alula/ultimoAcceso/<uid> (el array usuarios no lo tenía antes).
+      const nuevoU = { id: 'u' + Date.now(), uid: cred.user.uid, nombre, email, rol, estado };
       usuarios.push(nuevoU);
       await DB.set('usuarios', usuarios);
       logAuditoria('crear', 'usuario', nuevoU.id, `Usuario creado: ${nombre} (${email}) — rol ${rol}`);
