@@ -240,6 +240,24 @@ export async function saveReserva() {
   const nights = nightsBetween(entrada, salida);
   const totalEstadia = Math.round(precio * nights);
   const pagado = Number(document.getElementById('res-pagado').value) || 0;
+  if (salida <= entrada) {
+    savingReserva = false;
+    if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar Reserva'; }
+    showNotif('La fecha de salida debe ser posterior a la de entrada', 'error');
+    return;
+  }
+  if (precio < 0) {
+    savingReserva = false;
+    if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar Reserva'; }
+    showNotif('El precio no puede ser negativo', 'error');
+    return;
+  }
+  if (pagado > totalEstadia) {
+    savingReserva = false;
+    if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar Reserva'; }
+    showNotif('El monto pagado no puede superar el total de la estadía', 'error');
+    return;
+  }
   const saldo = Math.max(totalEstadia - pagado, 0);
   const estadoPago = document.getElementById('res-estado-pago').value;
   const reservas = DB.get('reservas', []);
