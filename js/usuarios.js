@@ -1,9 +1,16 @@
 // ===================== ROLES Y USUARIOS =====================
-import { DB, auth } from './firebase-config.js';
-import { createUserWithEmailAndPassword, updatePassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+import { DB, auth, loadAllData } from './firebase-config.js';
+import { updatePassword } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
 import { showNotif, openModal, closeModal, escapeHtml } from './helpers.js';
 import { currentUser } from './auth.js';
 import { logAuditoria } from './auditoria.js';
+
+// URL de la Cloud Function `crearUsuario`. La creación de usuarios ya NO usa el
+// sign-up público de Firebase Auth (deshabilitado): pega a esta Function con el
+// ID token del admin logueado.
+// ⚠️ COMPLETAR TRAS EL DEPLOY: reemplazar por la URL real que imprime
+//    `firebase deploy --only functions:crearUsuario`.
+const CREAR_USUARIO_URL = '__COMPLETAR_TRAS_DEPLOY__';
 
 // ===================== ROLES =====================
 export const MODULES = ['dashboard', 'mapa', 'reservas', 'checkin', 'huespedes', 'precios', 'contabilidad', 'caja'];
@@ -196,17 +203,27 @@ export async function saveUsuario() {
     if (pass.length < 6) { showNotif('La contraseña debe tener al menos 6 caracteres', 'error'); return; }
     if (pass !== pass2) { showNotif('Las contraseñas no coinciden', 'error'); return; }
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, pass);
-      // Guardamos el uid de Firebase Auth para poder mapear el usuario a su
-      // nodo alula/ultimoAcceso/<uid> (el array usuarios no lo tenía antes).
-      const nuevoU = { id: 'u' + Date.now(), uid: cred.user.uid, nombre, email, rol, estado };
-      usuarios.push(nuevoU);
-      await DB.set('usuarios', usuarios);
-      logAuditoria('crear', 'usuario', nuevoU.id, `Usuario creado: ${nombre} (${email}) — rol ${rol}`);
+      // La creación la hace la Cloud Function con el Admin SDK (auth + registro
+      // en alula/usuarios + auditoría), autenticada con el ID token del admin.
+      const token = await auth.currentUser.getIdToken();
+      const resp = await fetch(CREAR_USUARIO_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ email, password: pass, nombre, rolId: rol }),
+      });
+      if (!resp.ok) {
+        const msg = resp.status === 403 ? 'No tenés permisos'
+          : resp.status === 409 ? 'Ese email ya existe'
+          : 'Error al crear usuario. Intentá de nuevo.';
+        showNotif(msg, 'error');
+        return;
+      }
+      // Refrescar el cache local desde el server (la Function ya escribió el
+      // usuario) y re-renderizar.
+      await loadAllData();
       showNotif('Usuario creado: ' + nombre);
     } catch(e) {
-      const msg = e.code === 'auth/email-already-in-use' ? 'Ese email ya está registrado en Firebase Auth' : 'Error al crear usuario: ' + e.message;
-      showNotif(msg, 'error');
+      showNotif('Error al crear usuario. Intentá de nuevo.', 'error');
       return;
     }
   }
