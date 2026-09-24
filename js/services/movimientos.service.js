@@ -14,7 +14,7 @@ export function puedeAnular(mov) {
   if (mov.anulaId) return { ok: false, error: 'Un movimiento de anulación no se puede anular' };
   // Una transferencia son dos movimientos enlazados: anular una sola pata
   // dejaría la otra cuenta descuadrada.
-  if (mov.esTransferencia) return { ok: false, error: 'Las transferencias internas no se anulan desde acá' };
+  if (mov.esTransferencia) return { ok: false, error: 'Es parte de una transferencia — anulá desde el par completo' };
   if (!TIPO_OPUESTO[mov.tipo]) return { ok: false, error: 'Tipo de movimiento desconocido' };
   const monto = Number(mov.monto);
   if (!Number.isFinite(monto) || monto <= 0) return { ok: false, error: 'El movimiento no tiene un monto válido' };

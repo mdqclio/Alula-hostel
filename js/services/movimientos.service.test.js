@@ -26,7 +26,8 @@ describe('puedeAnular', () => {
   });
 
   it('transferencia interna → error', () => {
-    expect(puedeAnular({ ...ingreso, esTransferencia: true }).ok).toBe(false);
+    expect(puedeAnular({ ...ingreso, esTransferencia: true }))
+      .toEqual({ ok: false, error: 'Es parte de una transferencia — anulá desde el par completo' });
   });
 
   it('inexistente, tipo raro o monto inválido → error', () => {
