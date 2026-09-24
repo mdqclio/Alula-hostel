@@ -234,6 +234,32 @@ export async function saveReservaGrupal() {
   }
 }
 
+// ===================== LISTA (sección Reservas) =====================
+// Acceso directo a los grupos no cancelados, próximos primero.
+export function renderListaGrupos() {
+  const tbody = document.getElementById('tablaGrupos');
+  if (!tbody) return;
+  const grupos = Object.values(DB.get('grupos', {}) || {})
+    .filter(g => g && g.estado !== 'cancelada')
+    .sort((a, b) => (a.entrada || '').localeCompare(b.entrada || ''));
+  if (!grupos.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3)">Sin grupos activos</td></tr>';
+    return;
+  }
+  tbody.innerHTML = grupos.map(g => {
+    const saldo = Number(g.saldo) || 0;
+    return `<tr style="cursor:pointer" onclick="openGrupo('${escapeHtml(g.id)}')">
+      <td><strong>${escapeHtml(g.nombre)}</strong></td>
+      <td>${escapeHtml(g.entrada)}</td><td>${escapeHtml(g.salida)}</td>
+      <td style="text-align:center">${(g.camas || []).length}</td>
+      <td>${fmtMoney(g.totalAcordado || 0, g.moneda)}</td>
+      <td style="color:#34d399">${fmtMoney(g.pagado || 0, g.moneda)}</td>
+      <td style="color:${saldo > 0 ? '#fbbf24' : '#34d399'}">${saldo > 0 ? fmtMoney(saldo, g.moneda) : '✓ Al día'}</td>
+      <td>${estadoBadge(g.estado)}</td>
+    </tr>`;
+  }).join('');
+}
+
 // ===================== DETALLE =====================
 export function openGrupo(gid) {
   const g = getGrupo(gid);

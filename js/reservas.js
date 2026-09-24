@@ -4,6 +4,7 @@ import { DB } from './firebase-config.js';
 import { closeModal, escapeHtml, estadoBadge, fmtMoney, grupoTag, nightsBetween, openModal, pagoBadge, platBadge, showNotif, today } from './helpers.js';
 import { getConfig, habBeds, camaLabel, getCamaAttrs, getTotalCamas, getTemporadaParaFecha } from './config.js';
 import { logAuditoria } from './auditoria.js';
+import { renderListaGrupos } from './grupos.js';
 
 function getHuespedNombre(id) {
   const h = DB.get('huespedes', []).find(x => x.id === id);
@@ -11,6 +12,7 @@ function getHuespedNombre(id) {
 }
 
 export function renderReservas() {
+  renderListaGrupos();
   const reservas = DB.get('reservas', []);
   const q = document.getElementById('filterReserva')?.value.toLowerCase() || '';
   const estado = document.getElementById('filterEstado')?.value || '';
