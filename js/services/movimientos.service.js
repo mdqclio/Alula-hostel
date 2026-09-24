@@ -18,6 +18,11 @@ export function puedeAnular(mov) {
   if (!TIPO_OPUESTO[mov.tipo]) return { ok: false, error: 'Tipo de movimiento desconocido' };
   const monto = Number(mov.monto);
   if (!Number.isFinite(monto) || monto <= 0) return { ok: false, error: 'El movimiento no tiene un monto válido' };
+  // Todo cobro de reserva nace con grupoId o reservaId; sin vínculo no se
+  // puede revertir el saldo, así que no se anula (los manuales de Caja sí).
+  if (mov.cat === 'reserva' && !mov.grupoId && !mov.reservaId) {
+    return { ok: false, error: 'Cobro de reserva sin vínculo a la reserva o al grupo: no se puede anular' };
+  }
   return { ok: true };
 }
 
@@ -45,6 +50,7 @@ export function construirAnulacion(mov, { motivo, id, fecha } = {}) {
     motivoAnulacion: m,
   };
   if (mov.grupoId) espejo.grupoId = mov.grupoId;
+  if (mov.reservaId) espejo.reservaId = mov.reservaId;
   if (mov.tcARS) espejo.tcARS = mov.tcARS;
   if (mov.equivalenteARS) espejo.equivalenteARS = mov.equivalenteARS;
   return { ok: true, original, espejo };
@@ -65,4 +71,32 @@ export function revertirPagoGrupo(grupo, mov) {
   if (!Number.isFinite(m) || m <= 0) return { ok: false, error: 'Monto inválido', pagado, saldo };
   if (m > pagado) return { ok: false, error: 'El pago supera lo registrado como pagado en el grupo', pagado, saldo };
   return { ok: true, pagado: pagado - m, saldo: saldo + m };
+}
+
+// estadoPago de una reserva individual según lo pagado y el saldo.
+export function estadoPagoReserva(pagado, saldo) {
+  if (pagado <= 0) return 'pendiente';
+  return saldo > 0 ? 'senia' : 'total';
+}
+
+// Revierte un cobro de reserva individual: resta de pagado, suma al saldo y
+// recalcula estadoPago. Los cobros con afectaSaldo:false (late/early) nunca
+// tocaron la reserva, así que no hay nada que revertir.
+// Devuelve { ok, error?, sinCambios?, pagado, saldo, estadoPago }.
+export function revertirPagoReserva(reserva, mov) {
+  const pagado = Number(reserva?.pagado) || 0;
+  const saldo = Number(reserva?.saldo) || 0;
+  const estadoPago = reserva?.estadoPago;
+  if (!reserva) return { ok: false, error: 'No se encontró la reserva del pago', pagado, saldo, estadoPago };
+  if (mov.afectaSaldo === false) return { ok: true, sinCambios: true, pagado, saldo, estadoPago };
+  if (mov.tipo !== 'ingreso') return { ok: false, error: 'Solo se revierten pagos (ingresos) de reserva', pagado, saldo, estadoPago };
+  if (mov.moneda && reserva.moneda && mov.moneda !== reserva.moneda) {
+    return { ok: false, error: 'La moneda del pago no coincide con la de la reserva', pagado, saldo, estadoPago };
+  }
+  const m = Number(mov.monto);
+  if (!Number.isFinite(m) || m <= 0) return { ok: false, error: 'Monto inválido', pagado, saldo, estadoPago };
+  if (m > pagado) return { ok: false, error: 'El pago supera lo registrado como pagado en la reserva', pagado, saldo, estadoPago };
+  const nPagado = pagado - m;
+  const nSaldo = saldo + m;
+  return { ok: true, pagado: nPagado, saldo: nSaldo, estadoPago: estadoPagoReserva(nPagado, nSaldo) };
 }

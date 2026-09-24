@@ -292,7 +292,7 @@ export async function saveReserva() {
   await DB.set('reservas', reservas);
   if (pagado > 0) {
     const movs = DB.get('movimientos', []);
-    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda, monto: pagado, metodo: r.pago, fecha: today(), concepto: `${estadoPago === 'senia' ? 'Seña' : 'Pago'} reserva ${getHuespedNombre(h)} - Hab.${hab}` });
+    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda, monto: pagado, metodo: r.pago, fecha: today(), concepto: `${estadoPago === 'senia' ? 'Seña' : 'Pago'} reserva ${getHuespedNombre(h)} - Hab.${hab}`, reservaId: r.id });
     await DB.set('movimientos', movs);
   }
   savingReserva = false;
@@ -340,7 +340,7 @@ export async function confirmCheckin() {
   if (!r.pagado || r.pagado === 0) {
     const nights = nightsBetween(r.entrada, r.salida);
     const movs = DB.get('movimientos', []);
-    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto: Math.round(r.precio * nights), metodo: r.pago, fecha: today(), concepto: `Check-in ${getHuespedNombre(r.huespedId)} - Hab.${r.hab}` });
+    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto: Math.round(r.precio * nights), metodo: r.pago, fecha: today(), concepto: `Check-in ${getHuespedNombre(r.huespedId)} - Hab.${r.hab}`, reservaId: r.id });
     await DB.set('movimientos', movs);
     r.pagado = Math.round(r.precio * nights);
     r.saldo = 0;
@@ -384,12 +384,14 @@ export function savePago() {
   const reservas = DB.get('reservas', []);
   const r = reservas.find(x => x.id === rid);
   if (!r) return;
+  // Sin sobrepago: la anulación revierte exactamente lo que suma este cobro.
+  if (monto > (Number(r.saldo) || 0)) { showNotif('El monto supera el saldo de la reserva', 'error'); return; }
   r.pagado = (Number(r.pagado) || 0) + monto;
   r.saldo = Math.max((Number(r.saldo) || 0) - monto, 0);
   r.estadoPago = r.saldo <= 0 ? 'total' : 'senia';
   DB.set('reservas', reservas);
   const movs = DB.get('movimientos', []);
-  movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto, metodo, fecha: today(), concepto });
+  movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto, metodo, fecha: today(), concepto, reservaId: rid });
   DB.set('movimientos', movs);
   logAuditoria('editar', 'reserva', rid, `Pago registrado: ${fmtMoney(monto, r.moneda)} — ${getHuespedNombre(r.huespedId)}`);
   closeModal('modalPago');
@@ -446,7 +448,7 @@ export async function saveExtension() {
   if (cobrar === 'si') {
     r.pagado = (Number(r.pagado) || 0) + montoExtra;
     const movs = DB.get('movimientos', []);
-    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto: montoExtra, metodo, fecha: today(), concepto: `Extensión ${extra} noche(s) - ${getHuespedNombre(r.huespedId)} Hab.${r.hab}` });
+    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto: montoExtra, metodo, fecha: today(), concepto: `Extensión ${extra} noche(s) - ${getHuespedNombre(r.huespedId)} Hab.${r.hab}`, reservaId: r.id });
     await DB.set('movimientos', movs);
   } else {
     r.saldo = (Number(r.saldo) || 0) + montoExtra;
@@ -631,7 +633,9 @@ export async function saveHorario() {
     const movs = DB.get('movimientos', []);
     const label = tipo === 'late' ? 'Late Check-out' : 'Early Check-in';
     movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda, monto, metodo, fecha: today(),
-      concepto: `${label} ${hora}hs — ${getHuespedNombre(r.huespedId)} Hab.${r.hab}` });
+      concepto: `${label} ${hora}hs — ${getHuespedNombre(r.huespedId)} Hab.${r.hab}`,
+      // Cargo aparte: no suma a pagado/saldo de la reserva, la anulación tampoco.
+      reservaId: r.id, afectaSaldo: false });
     await DB.set('movimientos', movs);
   }
   await DB.set('reservas', reservas);

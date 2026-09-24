@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { puedeAnular, construirAnulacion, revertirPagoGrupo } from './movimientos.service.js';
+import { puedeAnular, construirAnulacion, revertirPagoGrupo, revertirPagoReserva, estadoPagoReserva } from './movimientos.service.js';
 import { aplicarPagoGrupo } from './grupos.service.js';
 
 const ingreso = {
-  id: 'm1', tipo: 'ingreso', cat: 'reserva', moneda: 'ARS', monto: 50000,
+  id: 'm1', tipo: 'ingreso', cat: 'reserva', reservaId: 'r1', moneda: 'ARS', monto: 50000,
   metodo: 'efectivo', fecha: '2026-09-20', concepto: 'Pago reserva Juan', cuenta: 'c1',
 };
 const opts = { motivo: 'Cargado dos veces', id: 'm2', fecha: '2026-09-24' };
@@ -28,6 +28,17 @@ describe('puedeAnular', () => {
   it('transferencia interna → error', () => {
     expect(puedeAnular({ ...ingreso, esTransferencia: true }))
       .toEqual({ ok: false, error: 'Es parte de una transferencia — anulá desde el par completo' });
+  });
+
+  it('cobro de reserva sin grupoId ni reservaId → error', () => {
+    const { reservaId, ...sinVinculo } = ingreso;
+    expect(puedeAnular(sinVinculo).error).toBe('Cobro de reserva sin vínculo a la reserva o al grupo: no se puede anular');
+    expect(puedeAnular({ ...sinVinculo, grupoId: 'g1' }).ok).toBe(true);
+  });
+
+  it('movimiento manual de Caja (sin vínculo, otra categoría) → ok', () => {
+    expect(puedeAnular({ id: 'm9', tipo: 'egreso', cat: 'Servicios', moneda: 'ARS', monto: 1000, concepto: 'Luz' }).ok).toBe(true);
+    expect(puedeAnular({ id: 'm9', tipo: 'ingreso', cat: 'Reservas', moneda: 'ARS', monto: 1000, concepto: 'Manual' }).ok).toBe(true);
   });
 
   it('inexistente, tipo raro o monto inválido → error', () => {
@@ -72,6 +83,10 @@ describe('construirAnulacion', () => {
     expect(construirAnulacion(sinCuenta, opts).espejo.cuenta).toBeNull();
   });
 
+  it('copia reservaId al espejo', () => {
+    expect(construirAnulacion(ingreso, opts).espejo.reservaId).toBe('r1');
+  });
+
   it('copia grupoId y datos de TC al espejo', () => {
     const r = construirAnulacion({ ...ingreso, moneda: 'USD', grupoId: 'g1', tcARS: 1400, equivalenteARS: 70000000 }, opts);
     expect(r.espejo).toMatchObject({ grupoId: 'g1', moneda: 'USD', tcARS: 1400, equivalenteARS: 70000000 });
@@ -111,5 +126,43 @@ describe('revertirPagoGrupo', () => {
     expect(revertirPagoGrupo(null, pago).ok).toBe(false);
     expect(revertirPagoGrupo(grupo, { ...pago, tipo: 'egreso' }).ok).toBe(false);
     expect(revertirPagoGrupo(grupo, { ...pago, moneda: 'USD' }).ok).toBe(false);
+  });
+});
+
+describe('revertirPagoReserva', () => {
+  const reserva = { id: 'r1', moneda: 'ARS', pagado: 80000, saldo: 20000, estadoPago: 'senia' };
+  const pago = { ...ingreso, monto: 30000 };
+
+  it('resta de pagado, suma al saldo y recalcula estadoPago', () => {
+    expect(revertirPagoReserva(reserva, pago)).toEqual({ ok: true, pagado: 50000, saldo: 50000, estadoPago: 'senia' });
+  });
+
+  it('revertir todo lo pagado → pendiente', () => {
+    expect(revertirPagoReserva(reserva, { ...pago, monto: 80000 }).estadoPago).toBe('pendiente');
+  });
+
+  it('pago total revertido parcialmente → seña', () => {
+    const total = { ...reserva, pagado: 100000, saldo: 0, estadoPago: 'total' };
+    expect(revertirPagoReserva(total, pago)).toEqual({ ok: true, pagado: 70000, saldo: 30000, estadoPago: 'senia' });
+  });
+
+  it('cargo con afectaSaldo:false (late/early) → sin cambios en la reserva', () => {
+    const r = revertirPagoReserva(reserva, { ...pago, moneda: 'USD', afectaSaldo: false });
+    expect(r).toEqual({ ok: true, sinCambios: true, pagado: 80000, saldo: 20000, estadoPago: 'senia' });
+  });
+
+  it('monto mayor a lo pagado, egreso, moneda distinta o reserva inexistente → error', () => {
+    expect(revertirPagoReserva(reserva, { ...pago, monto: 80001 }).ok).toBe(false);
+    expect(revertirPagoReserva(reserva, { ...pago, tipo: 'egreso' }).ok).toBe(false);
+    expect(revertirPagoReserva(reserva, { ...pago, moneda: 'USD' }).ok).toBe(false);
+    expect(revertirPagoReserva(null, pago).ok).toBe(false);
+  });
+});
+
+describe('estadoPagoReserva', () => {
+  it('pendiente / seña / total', () => {
+    expect(estadoPagoReserva(0, 100)).toBe('pendiente');
+    expect(estadoPagoReserva(50, 50)).toBe('senia');
+    expect(estadoPagoReserva(100, 0)).toBe('total');
   });
 });

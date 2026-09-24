@@ -3,7 +3,7 @@ import { DB } from './firebase-config.js';
 import { closeModal, escapeHtml, fmtMoney, movAnulacionTag, movAnularBtn, movRowStyle, openModal, showNotif, today } from './helpers.js';
 import { getCuentas, getCategorias } from './config.js';
 import { logAuditoria } from './auditoria.js';
-import { construirAnulacion, puedeAnular, revertirPagoGrupo } from './services/movimientos.service.js';
+import { construirAnulacion, puedeAnular, revertirPagoGrupo, revertirPagoReserva } from './services/movimientos.service.js';
 import { getGrupo, guardarGrupo } from './grupos.js';
 
 // ===== TIPO DE CAMBIO (bluelytics) =====
@@ -179,12 +179,18 @@ export function openAnularMovimiento(id) {
   const check = puedeAnular(m);
   if (!check.ok) { showNotif(check.error, 'error'); return; }
   const g = m.grupoId ? getGrupo(m.grupoId) : null;
+  const r = m.reservaId ? DB.get('reservas', []).find(x => x.id === m.reservaId) : null;
+  let efecto = '';
+  if (m.grupoId) efecto = `Pago del grupo ${escapeHtml(g?.nombre || m.grupoId)}: se devuelve ${fmtMoney(m.monto, m.moneda)} al saldo del grupo.`;
+  else if (m.reservaId && !r) efecto = 'La reserva ya no existe: solo se anula el movimiento.';
+  else if (m.reservaId && m.afectaSaldo === false) efecto = 'Cargo de horario especial: el saldo de la reserva no cambia.';
+  else if (m.reservaId) efecto = `Pago de reserva: se devuelve ${fmtMoney(m.monto, m.moneda)} al saldo de la reserva.`;
   document.getElementById('anu-mov-id').value = id;
   document.getElementById('anu-motivo').value = '';
   document.getElementById('anu-resumen').innerHTML = `
     <div style="margin-bottom:6px"><strong>${escapeHtml(m.concepto)}</strong></div>
     <div style="color:var(--text2)">${escapeHtml(m.fecha)} · ${m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'} · <strong style="color:${m.tipo === 'ingreso' ? '#34d399' : '#f87171'}">${fmtMoney(m.monto, m.moneda)}</strong></div>
-    ${m.grupoId ? `<div style="margin-top:6px;color:#fbbf24;font-size:12px">Pago del grupo ${escapeHtml(g?.nombre || m.grupoId)}: se devuelve ${fmtMoney(m.monto, m.moneda)} al saldo del grupo.</div>` : ''}`;
+    ${efecto ? `<div style="margin-top:6px;color:#fbbf24;font-size:12px">${efecto}</div>` : ''}`;
   openModal('modalAnularMovimiento');
 }
 
@@ -206,6 +212,15 @@ export async function confirmarAnulacion() {
     rev = revertirPagoGrupo(grupo, mov);
     if (!rev.ok) { showNotif(rev.error, 'error'); return; }
   }
+  // Pago de reserva individual: idem. Si la reserva fue eliminada no hay
+  // saldo que revertir y se anula solo el movimiento.
+  const reservas = DB.get('reservas', []);
+  const reserva = mov.reservaId ? reservas.find(x => x.id === mov.reservaId) : null;
+  let revRes = null;
+  if (reserva) {
+    revRes = revertirPagoReserva(reserva, mov);
+    if (!revRes.ok) { showNotif(revRes.error, 'error'); return; }
+  }
 
   anulando = true;
   const btn = document.getElementById('btnConfirmarAnulacion');
@@ -219,6 +234,16 @@ export async function confirmarAnulacion() {
       logAuditoria('editar', 'grupo', grupo.id,
         `Pago grupal revertido por anulación: ${fmtMoney(mov.monto, mov.moneda)} — ${grupo.nombre}. Motivo: ${res.original.motivoAnulacion}`,
         antesGrupo, { pagado: grupo.pagado, saldo: grupo.saldo });
+    }
+    if (reserva && !revRes.sinCambios) {
+      const antesRes = { pagado: reserva.pagado, saldo: reserva.saldo, estadoPago: reserva.estadoPago };
+      reserva.pagado = revRes.pagado;
+      reserva.saldo = revRes.saldo;
+      reserva.estadoPago = revRes.estadoPago;
+      await DB.set('reservas', reservas);
+      logAuditoria('editar', 'reserva', reserva.id,
+        `Pago revertido por anulación: ${fmtMoney(mov.monto, mov.moneda)}. Motivo: ${res.original.motivoAnulacion}`,
+        antesRes, { pagado: reserva.pagado, saldo: reserva.saldo, estadoPago: reserva.estadoPago });
     }
     movs[idx] = res.original;
     movs.push(res.espejo);
@@ -246,6 +271,10 @@ async function refrescarMovimientos() {
     rerenderAcct();
   }
   if (document.getElementById('saldosContent')) renderSaldos();
+  if (document.getElementById('tablaReservas')) {
+    const { renderReservas } = await import('./reservas.js');
+    renderReservas();
+  }
 }
 
 // ===== TRANSFERENCIAS INTERNAS =====
