@@ -10,7 +10,7 @@ import { logAuditoria } from './auditoria.js';
 // ID token del admin logueado.
 // ⚠️ COMPLETAR TRAS EL DEPLOY: reemplazar por la URL real que imprime
 //    `firebase deploy --only functions:crearUsuario`.
-const CREAR_USUARIO_URL = '__COMPLETAR_TRAS_DEPLOY__';
+const CREAR_USUARIO_URL = 'https://us-central1-alula-hostel.cloudfunctions.net/crearUsuario';
 
 // ===================== ROLES =====================
 export const MODULES = ['dashboard', 'mapa', 'reservas', 'checkin', 'huespedes', 'precios', 'contabilidad', 'caja'];
