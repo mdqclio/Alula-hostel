@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { puedeAnular, construirAnulacion, revertirPagoGrupo, revertirPagoReserva, estadoPagoReserva } from './movimientos.service.js';
+import { puedeAnular, construirAnulacion, revertirPagoGrupo, revertirPagoReserva, estadoPagoReserva, validarCuentaMovimiento } from './movimientos.service.js';
 import { aplicarPagoGrupo } from './grupos.service.js';
 
 const ingreso = {
@@ -164,5 +164,23 @@ describe('estadoPagoReserva', () => {
     expect(estadoPagoReserva(0, 100)).toBe('pendiente');
     expect(estadoPagoReserva(50, 50)).toBe('senia');
     expect(estadoPagoReserva(100, 0)).toBe('total');
+  });
+});
+
+describe('validarCuentaMovimiento', () => {
+  const cuentas = [{ id: 'c1', activa: true }, { id: 'c2', activa: false }];
+
+  it('cuenta activa existente → ok', () => {
+    expect(validarCuentaMovimiento('c1', cuentas).ok).toBe(true);
+  });
+
+  it('sin cuenta → error', () => {
+    expect(validarCuentaMovimiento('', cuentas).error).toBe('Elegí la cuenta del movimiento');
+    expect(validarCuentaMovimiento(null, cuentas).ok).toBe(false);
+  });
+
+  it('cuenta inexistente o inactiva → error', () => {
+    expect(validarCuentaMovimiento('c9', cuentas).ok).toBe(false);
+    expect(validarCuentaMovimiento('c2', cuentas).ok).toBe(false);
   });
 });

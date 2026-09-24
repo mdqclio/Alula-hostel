@@ -1,5 +1,6 @@
 // ===================== CONFIG =====================
 import { DB } from './firebase-config.js';
+import { escapeHtml } from './helpers.js';
 
 export const CONFIG_DEFAULTS = {
   hostel: {
@@ -117,11 +118,12 @@ export function metodosOptions(currentVal = 'efectivo') {
   ).join('');
 }
 
-/** <option> tags para select de cuentas activas (filtra por moneda opcional) */
+/** <option> tags para select de cuentas activas (filtra por moneda opcional).
+ *  Sin opción "Sin asignar": todo movimiento de dinero lleva cuenta. */
 export function cuentasOptions(currentVal = '', moneda = null) {
-  return '<option value="">Sin asignar</option>' + getCuentas()
+  return '<option value="">Seleccionar cuenta...</option>' + getCuentas()
     .filter(c => c.activa && (!moneda || c.moneda === moneda))
-    .map(c => `<option value="${c.id}" ${c.id === currentVal ? 'selected' : ''}>${c.nombre} (${c.moneda})</option>`)
+    .map(c => `<option value="${escapeHtml(c.id)}" ${c.id === currentVal ? 'selected' : ''}>${escapeHtml(c.nombre)} (${escapeHtml(c.moneda)})</option>`)
     .join('');
 }
 

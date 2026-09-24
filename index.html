@@ -208,6 +208,7 @@
             <option value="tarjeta">Tarjeta</option>
           </select>
         </div>
+        <div class="form-group"><label>Cuenta *</label><select id="res-cuenta"></select></div>
         <div class="form-group">
           <label>Saldo pendiente</label>
           <input type="text" id="res-saldo-display" readonly style="background:var(--surface3);color:#fbbf24;font-weight:600;" placeholder="$0">
@@ -271,7 +272,7 @@
     <div class="form-row" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
       <div class="form-group"><label>Seña (opcional)</label><input type="number" id="grp-senia" min="0" placeholder="0"></div>
       <div class="form-group"><label>Método de pago</label><select id="grp-senia-metodo"></select></div>
-      <div class="form-group"><label>Cuenta</label><select id="grp-senia-cuenta"></select></div>
+      <div class="form-group"><label>Cuenta (si hay seña) *</label><select id="grp-senia-cuenta"></select></div>
     </div>
     <div class="form-group"><label>Integrantes (uno por línea: Nombre Apellido - DNI)</label><textarea id="grp-integrantes" rows="4" placeholder="Juan Pérez - 30111222&#10;Ana Gómez - 32444555"></textarea></div>
     <div class="form-group"><label>Observaciones / negociación</label><textarea id="grp-obs" rows="2" placeholder="Ej: vacías 25k / llenas 30k"></textarea></div>
@@ -301,6 +302,7 @@
       <div class="form-group"><label>Monto a cobrar *</label><input type="number" id="pg-monto" placeholder="0"></div>
       <div class="form-group"><label>Método de pago</label><select id="pg-metodo"></select></div>
     </div>
+    <div class="form-group"><label>Cuenta *</label><select id="pg-cuenta"></select></div>
     <div class="form-group"><label>Concepto</label><input type="text" id="pg-concepto"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalPagoGrupo')">Cancelar</button>
@@ -435,6 +437,10 @@
       </div>
     </div>
     <div class="form-group"><label>Observaciones</label><input type="text" id="ci-obs" placeholder="Opcional"></div>
+    <div id="ci-cuenta-row" style="display:none;">
+      <p id="ci-cobro-info" style="font-size:12px;color:#fbbf24;margin-bottom:8px;"></p>
+      <div class="form-group"><label>Cuenta *</label><select id="ci-cuenta"></select></div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalCheckin')">Cancelar</button>
       <button class="btn btn-green" onclick="confirmCheckin()">✅ Confirmar Check-in</button>
@@ -463,6 +469,7 @@
         </select>
       </div>
     </div>
+    <div class="form-group"><label>Cuenta *</label><select id="pago-cuenta"></select></div>
     <div class="form-group"><label>Concepto</label><input type="text" id="pago-concepto" placeholder="Ej: Saldo restante estadía"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalPago')">Cancelar</button>
@@ -510,6 +517,7 @@
           <option value="tarjeta">Tarjeta</option>
         </select>
       </div>
+      <div class="form-group"><label>Cuenta *</label><select id="ext-cuenta"></select></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal('modalExtender')">Cancelar</button>
@@ -741,6 +749,7 @@
             <option value="tarjeta">Tarjeta</option>
           </select>
         </div>
+        <div class="form-group"><label>Cuenta *</label><select id="horario-cuenta"></select></div>
       </div>
     </div>
     <div class="form-group"><label>Notas</label><input type="text" id="horario-notas" placeholder="Opcional"></div>

@@ -6,7 +6,8 @@
 import { ref, set } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 import { DB, db, cache } from './firebase-config.js';
 import { closeModal, escapeHtml, estadoBadge, fmtMoney, nightsBetween, openModal, showNotif, today } from './helpers.js';
-import { getConfig, getCuentas, habBeds, camaLabel, metodosOptions } from './config.js';
+import { getConfig, getCuentas, cuentasOptions, habBeds, camaLabel, metodosOptions } from './config.js';
+import { validarCuentaMovimiento } from './services/movimientos.service.js';
 import { validarGrupo, construirReservasHijas, aplicarPagoGrupo } from './services/grupos.service.js';
 import { logAuditoria } from './auditoria.js';
 
@@ -67,10 +68,7 @@ export function openReservaGrupal() {
   });
   document.getElementById('grp-moneda').value = 'ARS';
   document.getElementById('grp-senia-metodo').innerHTML = metodosOptions('efectivo');
-  document.getElementById('grp-senia-cuenta').innerHTML = '<option value="">Sin asignar</option>' +
-    getCuentas().filter(c => c.activa).map(c =>
-      `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)} (${escapeHtml(c.moneda)})</option>`
-    ).join('');
+  document.getElementById('grp-senia-cuenta').innerHTML = cuentasOptions();
   toggleTitularNuevo();
   renderGrupoCamas();
   openModal('modalReservaGrupal');
@@ -154,6 +152,11 @@ export async function saveReservaGrupal() {
   };
   const v = validarGrupo(datos);
   if (!v.ok) { showNotif(v.errores[0], 'error'); return; }
+  const seniaCuenta = document.getElementById('grp-senia-cuenta').value;
+  if (Number(datos.senia) > 0) {
+    const vc = validarCuentaMovimiento(seniaCuenta, getCuentas());
+    if (!vc.ok) { showNotif(vc.error, 'error'); return; }
+  }
 
   savingGrupo = true;
   const btn = document.getElementById('btnGuardarGrupo');
@@ -204,7 +207,7 @@ export async function saveReservaGrupal() {
         id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: grupo.moneda, monto: senia,
         metodo: document.getElementById('grp-senia-metodo').value, fecha: today(),
         concepto: `Seña grupo ${grupo.nombre}`,
-        cuenta: document.getElementById('grp-senia-cuenta').value || null,
+        cuenta: seniaCuenta,
         grupoId: grupo.id,
       };
     }
@@ -369,6 +372,7 @@ export function openPagoGrupo(gid) {
   document.getElementById('pg-grupo-id').value = gid;
   document.getElementById('pg-monto').value = g.saldo || '';
   document.getElementById('pg-metodo').innerHTML = metodosOptions('efectivo');
+  document.getElementById('pg-cuenta').innerHTML = cuentasOptions();
   document.getElementById('pg-concepto').value = `Pago grupo ${g.nombre}`;
   document.getElementById('pg-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
@@ -387,13 +391,16 @@ export async function savePagoGrupo() {
   const monto = Number(document.getElementById('pg-monto').value);
   const res = aplicarPagoGrupo(g, monto);
   if (!res.ok) { showNotif(res.error, 'error'); return; }
+  const cuenta = document.getElementById('pg-cuenta').value;
+  const vc = validarCuentaMovimiento(cuenta, getCuentas());
+  if (!vc.ok) { showNotif(vc.error, 'error'); return; }
   const metodo = document.getElementById('pg-metodo').value;
   const concepto = document.getElementById('pg-concepto').value.trim() || `Pago grupo ${g.nombre}`;
   g.pagado = res.pagado;
   g.saldo = res.saldo;
   await guardarGrupo(g);
   const movs = DB.get('movimientos', []);
-  movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: g.moneda, monto, metodo, fecha: today(), concepto, grupoId: gid });
+  movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: g.moneda, monto, metodo, fecha: today(), concepto, cuenta, grupoId: gid });
   await DB.set('movimientos', movs);
   logAuditoria('editar', 'grupo', gid, `Pago grupal registrado: ${fmtMoney(monto, g.moneda)} — ${g.nombre}`);
   closeModal('modalPagoGrupo');

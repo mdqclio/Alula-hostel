@@ -1,9 +1,9 @@
 // ===================== CAJA DIARIA =====================
 import { DB } from './firebase-config.js';
 import { closeModal, escapeHtml, fmtMoney, movAnulacionTag, movAnularBtn, movRowStyle, openModal, showNotif, today } from './helpers.js';
-import { getCuentas, getCategorias } from './config.js';
+import { getCuentas, getCategorias, cuentasOptions } from './config.js';
 import { logAuditoria } from './auditoria.js';
-import { construirAnulacion, puedeAnular, revertirPagoGrupo, revertirPagoReserva } from './services/movimientos.service.js';
+import { construirAnulacion, puedeAnular, revertirPagoGrupo, revertirPagoReserva, validarCuentaMovimiento } from './services/movimientos.service.js';
 import { getGrupo, guardarGrupo } from './grupos.js';
 
 // ===== TIPO DE CAMBIO (bluelytics) =====
@@ -29,11 +29,7 @@ function populateCategoriasSelect(selectId, tipo) {
 
 function popularCuentasSelect(selectId) {
   const el = document.getElementById(selectId);
-  if (!el) return;
-  el.innerHTML = '<option value="">Sin asignar</option>' +
-    getCuentas().filter(c => c.activa).map(c =>
-      `<option value="${c.id}">${escapeHtml(c.nombre)} (${c.moneda})</option>`
-    ).join('');
+  if (el) el.innerHTML = cuentasOptions();
 }
 
 function actualizarTCyWarning(monedaId, cuentaId, tcRowId, warningId, tcInputId) {
@@ -130,6 +126,9 @@ export function saveMovimiento() {
   const monto = document.getElementById('mov-monto').value;
   const concepto = document.getElementById('mov-concepto').value;
   if (!monto || !concepto) { showNotif('Monto y concepto son obligatorios', 'error'); return; }
+  const cuenta = document.getElementById('mov-cuenta')?.value || '';
+  const vc = validarCuentaMovimiento(cuenta, getCuentas());
+  if (!vc.ok) { showNotif(vc.error, 'error'); return; }
   const moneda = document.getElementById('mov-moneda').value;
   const tc = (moneda === 'USD') ? (Number(document.getElementById('mov-tc')?.value) || null) : null;
   const mov = {
@@ -141,7 +140,7 @@ export function saveMovimiento() {
     metodo:  document.getElementById('mov-metodo').value,
     fecha:   document.getElementById('mov-fecha').value,
     concepto,
-    cuenta:  document.getElementById('mov-cuenta')?.value || null,
+    cuenta,
   };
   if (tc) { mov.tcARS = tc; mov.equivalenteARS = Math.round(Number(monto) * tc); }
   const movs = DB.get('movimientos', []);

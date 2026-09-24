@@ -2,7 +2,8 @@
 import { sugerirCama, calcularScoreCama, calcularOcupacionGlobal, calcularPrecioCama } from "./services/camas.service.js";
 import { DB } from './firebase-config.js';
 import { closeModal, escapeHtml, estadoBadge, fmtMoney, grupoTag, nightsBetween, openModal, pagoBadge, platBadge, showNotif, today } from './helpers.js';
-import { getConfig, habBeds, camaLabel, getCamaAttrs, getTotalCamas, getTemporadaParaFecha } from './config.js';
+import { getConfig, getCuentas, cuentasOptions, habBeds, camaLabel, getCamaAttrs, getTotalCamas, getTemporadaParaFecha } from './config.js';
+import { validarCuentaMovimiento } from './services/movimientos.service.js';
 import { logAuditoria } from './auditoria.js';
 import { renderListaGrupos } from './grupos.js';
 
@@ -196,6 +197,7 @@ export function openNuevaReserva(opts) {
   document.getElementById('res-huesped').innerHTML = '<option value="">Seleccionar...</option>' +
     huespedes.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)}</option>`).join('');
 
+  document.getElementById('res-cuenta').innerHTML = cuentasOptions();
   const habs = getConfig().hostel.habitaciones.filter(h => h.activa && h.camas > 0);
   document.getElementById('res-hab').innerHTML = '<option value="">Seleccionar...</option>' +
     habs.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)}</option>`).join('');
@@ -275,6 +277,16 @@ export async function saveReserva() {
     showNotif('El monto pagado no puede superar el total de la estadía', 'error');
     return;
   }
+  const cuenta = document.getElementById('res-cuenta').value;
+  if (pagado > 0) {
+    const vc = validarCuentaMovimiento(cuenta, getCuentas());
+    if (!vc.ok) {
+      savingReserva = false;
+      if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar Reserva'; }
+      showNotif(vc.error, 'error');
+      return;
+    }
+  }
   const saldo = Math.max(totalEstadia - pagado, 0);
   const estadoPago = document.getElementById('res-estado-pago').value;
   const reservas = DB.get('reservas', []);
@@ -292,7 +304,7 @@ export async function saveReserva() {
   await DB.set('reservas', reservas);
   if (pagado > 0) {
     const movs = DB.get('movimientos', []);
-    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda, monto: pagado, metodo: r.pago, fecha: today(), concepto: `${estadoPago === 'senia' ? 'Seña' : 'Pago'} reserva ${getHuespedNombre(h)} - Hab.${hab}`, reservaId: r.id });
+    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda, monto: pagado, metodo: r.pago, fecha: today(), concepto: `${estadoPago === 'senia' ? 'Seña' : 'Pago'} reserva ${getHuespedNombre(h)} - Hab.${hab}`, cuenta, reservaId: r.id });
     await DB.set('movimientos', movs);
   }
   savingReserva = false;
@@ -316,6 +328,12 @@ export function doCheckin(rid) {
   document.getElementById('ci-hora').value = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
   document.getElementById('ci-llave').value = r.llave || '';
   document.getElementById('ci-obs').value = '';
+  // Si la reserva no tiene pagos, el check-in cobra la estadía completa.
+  const montoCheckin = !r.pagado ? Math.round(r.precio * nightsBetween(r.entrada, r.salida)) : 0;
+  document.getElementById('ci-cuenta-row').style.display = montoCheckin > 0 ? '' : 'none';
+  document.getElementById('ci-cobro-info').textContent = montoCheckin > 0
+    ? `El check-in registra el cobro de ${fmtMoney(montoCheckin, r.moneda)}.` : '';
+  document.getElementById('ci-cuenta').innerHTML = cuentasOptions();
   document.getElementById('ci-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
@@ -333,6 +351,12 @@ export async function confirmCheckin() {
   const reservas = DB.get('reservas', []);
   const r = reservas.find(x => x.id === rid);
   if (!r) return;
+  const montoCheckin = !r.pagado ? Math.round(r.precio * nightsBetween(r.entrada, r.salida)) : 0;
+  const cuenta = document.getElementById('ci-cuenta').value;
+  if (montoCheckin > 0) {
+    const vc = validarCuentaMovimiento(cuenta, getCuentas());
+    if (!vc.ok) { showNotif(vc.error, 'error'); return; }
+  }
   r.estado = 'checkin';
   r.llave = llave;
   r.horaCheckin = hora;
@@ -340,7 +364,7 @@ export async function confirmCheckin() {
   if (!r.pagado || r.pagado === 0) {
     const nights = nightsBetween(r.entrada, r.salida);
     const movs = DB.get('movimientos', []);
-    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto: Math.round(r.precio * nights), metodo: r.pago, fecha: today(), concepto: `Check-in ${getHuespedNombre(r.huespedId)} - Hab.${r.hab}`, reservaId: r.id });
+    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto: Math.round(r.precio * nights), metodo: r.pago, fecha: today(), concepto: `Check-in ${getHuespedNombre(r.huespedId)} - Hab.${r.hab}`, cuenta, reservaId: r.id });
     await DB.set('movimientos', movs);
     r.pagado = Math.round(r.precio * nights);
     r.saldo = 0;
@@ -366,6 +390,7 @@ export function openPago(rid) {
   document.getElementById('pago-res-id').value = rid;
   document.getElementById('pago-monto').value = r.saldo || '';
   document.getElementById('pago-concepto').value = `Saldo estadía ${getHuespedNombre(r.huespedId)}`;
+  document.getElementById('pago-cuenta').innerHTML = cuentasOptions();
   document.getElementById('pago-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
@@ -381,6 +406,9 @@ export function savePago() {
   const metodo = document.getElementById('pago-metodo').value;
   const concepto = document.getElementById('pago-concepto').value;
   if (!monto || monto <= 0) { showNotif('Ingresá un monto válido', 'error'); return; }
+  const cuenta = document.getElementById('pago-cuenta').value;
+  const vc = validarCuentaMovimiento(cuenta, getCuentas());
+  if (!vc.ok) { showNotif(vc.error, 'error'); return; }
   const reservas = DB.get('reservas', []);
   const r = reservas.find(x => x.id === rid);
   if (!r) return;
@@ -391,7 +419,7 @@ export function savePago() {
   r.estadoPago = r.saldo <= 0 ? 'total' : 'senia';
   DB.set('reservas', reservas);
   const movs = DB.get('movimientos', []);
-  movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto, metodo, fecha: today(), concepto, reservaId: rid });
+  movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto, metodo, fecha: today(), concepto, cuenta, reservaId: rid });
   DB.set('movimientos', movs);
   logAuditoria('editar', 'reserva', rid, `Pago registrado: ${fmtMoney(monto, r.moneda)} — ${getHuespedNombre(r.huespedId)}`);
   closeModal('modalPago');
@@ -408,6 +436,7 @@ export function openExtender(rid) {
   document.getElementById('ext-nueva-salida').min = r.salida;
   document.getElementById('ext-noches-extra').value = '0';
   document.getElementById('ext-monto-extra').value = fmtMoney(0, r.moneda);
+  document.getElementById('ext-cuenta').innerHTML = cuentasOptions();
   document.getElementById('ext-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
       <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
@@ -442,13 +471,18 @@ export async function saveExtension() {
   const reservas = DB.get('reservas', []);
   const r = reservas.find(x => x.id === rid);
   if (!r || !nuevaSalida || nuevaSalida <= r.salida) { showNotif('Elegí una fecha posterior a la salida actual', 'error'); return; }
+  const cuenta = document.getElementById('ext-cuenta').value;
+  if (cobrar === 'si') {
+    const vc = validarCuentaMovimiento(cuenta, getCuentas());
+    if (!vc.ok) { showNotif(vc.error, 'error'); return; }
+  }
   const extra = nightsBetween(r.salida, nuevaSalida);
   const montoExtra = extra * r.precio;
   r.salida = nuevaSalida;
   if (cobrar === 'si') {
     r.pagado = (Number(r.pagado) || 0) + montoExtra;
     const movs = DB.get('movimientos', []);
-    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto: montoExtra, metodo, fecha: today(), concepto: `Extensión ${extra} noche(s) - ${getHuespedNombre(r.huespedId)} Hab.${r.hab}`, reservaId: r.id });
+    movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: r.moneda, monto: montoExtra, metodo, fecha: today(), concepto: `Extensión ${extra} noche(s) - ${getHuespedNombre(r.huespedId)} Hab.${r.hab}`, cuenta, reservaId: r.id });
     await DB.set('movimientos', movs);
   } else {
     r.saldo = (Number(r.saldo) || 0) + montoExtra;
@@ -591,6 +625,7 @@ export function openHorario(rid, tipo) {
   document.getElementById('horario-monto-group').style.display = 'none';
   document.getElementById('horario-pago-group').style.display = 'none';
   document.getElementById('horario-notas').value = '';
+  document.getElementById('horario-cuenta').innerHTML = cuentasOptions();
   document.getElementById('horario-resumen').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div><span style="color:var(--text3);display:block;font-size:11px">Huésped</span><strong>${escapeHtml(getHuespedNombre(r.huespedId))}</strong></div>
@@ -618,6 +653,11 @@ export async function saveHorario() {
   const notas = document.getElementById('horario-notas').value;
   if (!hora) { showNotif('Ingresá la hora', 'error'); return; }
   if (cobrar && monto <= 0) { showNotif('Ingresá un monto válido', 'error'); return; }
+  const cuenta = document.getElementById('horario-cuenta').value;
+  if (cobrar) {
+    const vc = validarCuentaMovimiento(cuenta, getCuentas());
+    if (!vc.ok) { showNotif(vc.error, 'error'); return; }
+  }
 
   const reservas = DB.get('reservas', []);
   const r = reservas.find(x => x.id === rid);
@@ -635,7 +675,7 @@ export async function saveHorario() {
     movs.push({ id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda, monto, metodo, fecha: today(),
       concepto: `${label} ${hora}hs — ${getHuespedNombre(r.huespedId)} Hab.${r.hab}`,
       // Cargo aparte: no suma a pagado/saldo de la reserva, la anulación tampoco.
-      reservaId: r.id, afectaSaldo: false });
+      cuenta, reservaId: r.id, afectaSaldo: false });
     await DB.set('movimientos', movs);
   }
   await DB.set('reservas', reservas);

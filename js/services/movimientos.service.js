@@ -100,3 +100,11 @@ export function revertirPagoReserva(reserva, mov) {
   const nSaldo = saldo + m;
   return { ok: true, pagado: nPagado, saldo: nSaldo, estadoPago: estadoPagoReserva(nPagado, nSaldo) };
 }
+
+// Todo movimiento de dinero nace con una cuenta activa existente.
+export function validarCuentaMovimiento(cuentaId, cuentas = []) {
+  if (!cuentaId) return { ok: false, error: 'Elegí la cuenta del movimiento' };
+  const c = cuentas.find(x => x.id === cuentaId);
+  if (!c || c.activa === false) return { ok: false, error: 'La cuenta elegida no existe o está inactiva' };
+  return { ok: true };
+}
