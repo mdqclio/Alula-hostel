@@ -17,6 +17,10 @@ import {
 } from './reservas.js';
 import { renderCheckin } from './checkin.js';
 import {
+  openReservaGrupal, toggleTitularNuevo, renderGrupoCamas, seleccionarTodoHostel, actualizarContadorCamas,
+  saveReservaGrupal, openGrupo, checkinGrupo, checkoutGrupo, cancelarGrupo, openPagoGrupo, savePagoGrupo
+} from './grupos.js';
+import {
   renderHuespedes, showGuestDetail, saveHuesped, previewDoc, runOCR,
   openEditHuesped, saveEditHuesped, confirmDelete, deleteHuesped,
   renderScoreStars, setScore, getScoreBadge,
@@ -84,6 +88,10 @@ Object.assign(window, {
   openCambioCama, updateCambioCamaSelect, saveCambioCama,
   openHorario, toggleHorarioCobro, toggleHorarioCobroToggle: toggleHorarioCobro,
   saveHorario, deleteReserva, updateCamaInfo,
+
+  // Reservas grupales
+  openReservaGrupal, toggleTitularNuevo, renderGrupoCamas, seleccionarTodoHostel, actualizarContadorCamas,
+  saveReservaGrupal, openGrupo, checkinGrupo, checkoutGrupo, cancelarGrupo, openPagoGrupo, savePagoGrupo,
 
   // Check-in
   renderCheckin,

@@ -238,6 +238,72 @@
   </div>
 </div>
 
+<!-- MODAL RESERVA GRUPAL -->
+<div class="modal-overlay" id="modalReservaGrupal">
+  <div class="modal" style="width:680px;">
+    <h2>👥 Reserva grupal</h2>
+    <div class="form-group"><label>Nombre del grupo *</label><input type="text" id="grp-nombre" maxlength="80" placeholder="Ej: Grupo Vóley Rosario"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Fecha Entrada *</label><input type="date" id="grp-entrada" onchange="renderGrupoCamas()"></div>
+      <div class="form-group"><label>Fecha Salida *</label><input type="date" id="grp-salida" onchange="renderGrupoCamas()"></div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+        <span style="font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;">Camas * <span id="grp-camas-count" style="text-transform:none;letter-spacing:0;"></span></span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="seleccionarTodoHostel()">Seleccionar todo el hostel</button>
+      </div>
+      <div id="grp-camas" style="max-height:220px;overflow:auto;"></div>
+    </div>
+    <div class="form-group"><label>Titular *</label>
+      <select id="grp-titular" onchange="toggleTitularNuevo()"><option value="">Seleccionar...</option></select>
+    </div>
+    <div id="grp-titular-nuevo" class="form-row" style="display:none;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
+      <div class="form-group"><label>Nombre *</label><input type="text" id="grp-tit-nombre"></div>
+      <div class="form-group"><label>Apellido *</label><input type="text" id="grp-tit-apellido"></div>
+      <div class="form-group"><label>DNI / Pasaporte *</label><input type="text" id="grp-tit-dni"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Total acordado *</label><input type="number" id="grp-total" min="0" placeholder="Precio negociado del grupo"></div>
+      <div class="form-group"><label>Moneda</label>
+        <select id="grp-moneda"><option value="ARS">ARS</option><option value="USD">USD</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label>Integrantes (uno por línea: Nombre Apellido - DNI)</label><textarea id="grp-integrantes" rows="4" placeholder="Juan Pérez - 30111222&#10;Ana Gómez - 32444555"></textarea></div>
+    <div class="form-group"><label>Observaciones / negociación</label><textarea id="grp-obs" rows="2" placeholder="Ej: vacías 25k / llenas 30k"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalReservaGrupal')">Cancelar</button>
+      <button class="btn btn-blue" id="btnGuardarGrupo" onclick="saveReservaGrupal()">Crear grupo</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE DE GRUPO -->
+<div class="modal-overlay" id="modalGrupo">
+  <div class="modal" style="width:640px;">
+    <h2 id="modalGrupoTitle">👥 Grupo</h2>
+    <div id="grupoDetalleContent"></div>
+    <div class="modal-footer" id="grupoDetalleAcciones" style="flex-wrap:wrap;"></div>
+  </div>
+</div>
+
+<!-- MODAL PAGO AL GRUPO -->
+<div class="modal-overlay" id="modalPagoGrupo">
+  <div class="modal">
+    <h2>Registrar pago del grupo</h2>
+    <input type="hidden" id="pg-grupo-id">
+    <div id="pg-resumen" style="background:var(--surface2);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:13px;"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Monto a cobrar *</label><input type="number" id="pg-monto" placeholder="0"></div>
+      <div class="form-group"><label>Método de pago</label><select id="pg-metodo"></select></div>
+    </div>
+    <div class="form-group"><label>Concepto</label><input type="text" id="pg-concepto"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalPagoGrupo')">Cancelar</button>
+      <button class="btn btn-green" onclick="savePagoGrupo()">Registrar pago</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EDITAR HUÉSPED -->
 <div class="modal-overlay" id="modalEditHuesped">
   <div class="modal">
