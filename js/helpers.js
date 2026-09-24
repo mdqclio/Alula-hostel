@@ -29,11 +29,18 @@ export function estadoBadge(e) {
 }
 
 export function pagoBadge(r) {
+  // Las hijas de un grupo no llevan dinero: el saldo vive en el grupo.
+  if (r.esGrupal) return `<span class="badge blue">Grupal</span>`;
   const ep = r.estadoPago || 'total';
   const saldo = Number(r.saldo || 0);
   if (ep === 'pendiente') return `<span class="badge red">Sin pago</span>`;
   if (ep === 'senia' || saldo > 0) return `<span class="badge amber">Debe ${fmtMoney(saldo, r.moneda)}</span>`;
   return `<span class="badge green">Pagado</span>`;
+}
+
+// Badge con el nombre del grupo para reservas hijas ('' si es individual).
+export function grupoTag(r) {
+  return r && r.esGrupal ? `<span class="badge blue">👥 ${escapeHtml(r.grupoNombre || 'Grupo')}</span>` : '';
 }
 
 export function showNotif(msg, type = 'success') {

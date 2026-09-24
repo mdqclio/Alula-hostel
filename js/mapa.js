@@ -71,7 +71,7 @@ export function renderMapa(fechaVer) {
             (r.estado === 'checkin' || r.estado === 'confirmada') &&
             r.entrada.substring(0, 10) <= fechaConsulta && r.salida.substring(0, 10) > fechaConsulta
           );
-          const guestName = res ? getHuespedNombre(res.huespedId).split(' ')[0] : '';
+          const guestName = !res ? '' : res.esGrupal ? '👥 ' + escapeHtml(res.grupoNombre || 'Grupo') : getHuespedNombre(res.huespedId).split(' ')[0];
           const bunk = i % 2 === 0 ? '⬇' : '⬆';
           const clickable = !esModoConsulta;
           const tooltipText = guestName ? `Cama ${b.label} — ${guestName}` : `Cama ${b.label}`;
@@ -115,6 +115,12 @@ export async function cycleBed(bedId) {
     (r.estado === 'checkin' || r.estado === 'confirmada') &&
     r.entrada.substring(0, 10) <= today() && r.salida.substring(0, 10) > today()
   );
+  if (resOcupada && resOcupada.esGrupal) {
+    // Hija de grupo: el detalle útil (titular, integrantes, saldo) está en el grupo.
+    const { openGrupo } = await import('./grupos.js');
+    openGrupo(resOcupada.grupoId);
+    return;
+  }
   if (resOcupada) {
     const h = DB.get('huespedes', []).find(x => x.id === resOcupada.huespedId);
     const saldo = Number(resOcupada.saldo || 0);

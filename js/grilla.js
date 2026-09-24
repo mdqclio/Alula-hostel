@@ -205,8 +205,13 @@ function renderOperativa() {
           const esEntrada = res.entrada.substring(0, 10) === f;
           cellClass = res.estado === 'checkin' ? 'gc-occupied' : res.estado === 'confirmada' ? 'gc-confirmed' : 'gc-checkout';
           if (esEntrada) {
-            const nombre = getHuespedNombre(res.huespedId).split(' ')[0];
-            innerHtml = `<div class="grilla-span ${res.estado}" onclick="cycleBed('${b.id}')" title="${getHuespedNombre(res.huespedId)}">${nombre}</div>`;
+            if (res.esGrupal) {
+              const grupo = escapeHtml(res.grupoNombre || 'Grupo');
+              innerHtml = `<div class="grilla-span ${res.estado}" onclick="openGrupo('${res.grupoId}')" title="👥 ${grupo}">👥 ${grupo}</div>`;
+            } else {
+              const nombre = getHuespedNombre(res.huespedId).split(' ')[0];
+              innerHtml = `<div class="grilla-span ${res.estado}" onclick="cycleBed('${b.id}')" title="${getHuespedNombre(res.huespedId)}">${nombre}</div>`;
+            }
           }
         }
 

@@ -1,7 +1,7 @@
 // ===================== RESERVAS =====================
 import { sugerirCama, calcularScoreCama, calcularOcupacionGlobal, calcularPrecioCama } from "./services/camas.service.js";
 import { DB } from './firebase-config.js';
-import { closeModal, escapeHtml, estadoBadge, fmtMoney, nightsBetween, openModal, pagoBadge, platBadge, showNotif, today } from './helpers.js';
+import { closeModal, escapeHtml, estadoBadge, fmtMoney, grupoTag, nightsBetween, openModal, pagoBadge, platBadge, showNotif, today } from './helpers.js';
 import { getConfig, habBeds, camaLabel, getCamaAttrs, getTotalCamas, getTemporadaParaFecha } from './config.js';
 import { logAuditoria } from './auditoria.js';
 
@@ -18,7 +18,7 @@ export function renderReservas() {
 
   let filtered = reservas.filter(r => {
     const nombre = getHuespedNombre(r.huespedId).toLowerCase();
-    const matchQ = !q || nombre.includes(q) || r.id.includes(q);
+    const matchQ = !q || nombre.includes(q) || r.id.includes(q) || (r.grupoNombre || '').toLowerCase().includes(q);
     const matchE = !estado || r.estado === estado;
     const matchP = !plat || r.plataforma === plat;
     return matchQ && matchE && matchP;
@@ -35,6 +35,21 @@ export function renderReservas() {
     const canCheckin = r.estado === 'confirmada';
     const canCheckout = r.estado === 'checkin';
     const hasSaldo = Number(r.saldo || 0) > 0;
+    if (r.esGrupal) {
+      // Hija de un grupo: el titular, el dinero y las acciones viven en el grupo.
+      return `<tr>
+      <td style="font-family:'DM Mono';font-size:11px;color:var(--text3)">${r.id}</td>
+      <td>${grupoTag(r)}</td>
+      <td>Hab.${r.hab} / C${camaLabel(r.cama)}</td>
+      <td>${r.entrada}</td><td>${r.salida}</td>
+      <td style="text-align:center">${nights}</td>
+      <td style="color:var(--text3)">Grupal</td>
+      <td>${platBadge(r.plataforma)}</td>
+      <td>${estadoBadge(r.estado)}</td>
+      <td>${pagoBadge(r)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openGrupo('${r.grupoId}')">👥 Ver grupo</button></td>
+    </tr>`;
+    }
     return `<tr>
       <td style="font-family:'DM Mono';font-size:11px;color:var(--text3)">${r.id}</td>
       <td>${escapeHtml(getHuespedNombre(r.huespedId))}</td>

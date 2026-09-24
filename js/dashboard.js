@@ -1,6 +1,6 @@
 // ===================== DASHBOARD =====================
 import { DB } from './firebase-config.js';
-import { today, fmtMoney, platBadge, pagoBadge, dateToLocal, escapeHtml } from './helpers.js';
+import { today, fmtMoney, platBadge, pagoBadge, dateToLocal, escapeHtml, grupoTag } from './helpers.js';
 import { getTotalCamas, camaLabel } from './config.js';
 
 function getHuespedNombre(id) {
@@ -32,7 +32,7 @@ export function renderDashboard() {
 
   document.getElementById('dash-checkins').innerHTML = proxCheckins.length
     ? proxCheckins.map(r => `<tr>
-        <td>${getHuespedNombre(r.huespedId)}</td>
+        <td>${r.esGrupal ? grupoTag(r) : getHuespedNombre(r.huespedId)}</td>
         <td>Hab.${r.hab} <span style="font-family:'DM Mono';font-size:11px;color:var(--accent2)">C${camaLabel(r.cama)}</span></td>
         <td>${r.entrada}</td>
         <td>${platBadge(r.plataforma)}</td>
@@ -41,7 +41,7 @@ export function renderDashboard() {
 
   document.getElementById('dash-checkouts').innerHTML = proxCheckouts.length
     ? proxCheckouts.map(r => `<tr>
-        <td>${getHuespedNombre(r.huespedId)}</td>
+        <td>${r.esGrupal ? grupoTag(r) : getHuespedNombre(r.huespedId)}</td>
         <td>Hab.${r.hab} <span style="font-family:'DM Mono';font-size:11px;color:var(--accent2)">C${camaLabel(r.cama)}</span></td>
         <td>${r.salida}</td>
         <td>${pagoBadge(r)}</td>

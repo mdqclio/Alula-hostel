@@ -155,7 +155,21 @@ export async function rechazarPreRegistro(pid) {
 export function showGuestDetail(id) {
   const h = DB.get('huespedes', []).find(x => x.id === id);
   if (!h) return;
-  const reservas = DB.get('reservas', []).filter(r => r.huespedId === id);
+  // Las N hijas de un grupo del que es titular cuentan como una sola estadía,
+  // con el total acordado del grupo.
+  const grupos = DB.get('grupos', {}) || {};
+  const vistos = new Set();
+  const reservas = DB.get('reservas', []).filter(r => {
+    if (r.huespedId !== id) return false;
+    if (!r.esGrupal) return true;
+    if (vistos.has(r.grupoId)) return false;
+    vistos.add(r.grupoId);
+    return true;
+  });
+  const totalFila = r => {
+    const g = r.esGrupal ? grupos[r.grupoId] : null;
+    return g ? fmtMoney(g.totalAcordado, g.moneda) : fmtMoney(r.precio * nightsBetween(r.entrada, r.salida), r.moneda);
+  };
   const generoIcon = { Masculino: '♂', Femenino: '♀', Otro: '⚧', 'Prefiero no responder': '—' };
   document.getElementById('guestDetailContent').innerHTML = `
     <div class="guest-detail" style="margin-bottom:20px">
@@ -179,8 +193,8 @@ export function showGuestDetail(id) {
     <p style="font-size:12px;color:var(--text3);margin-bottom:8px">Historial de reservas:</p>
     <table><thead><tr><th>Entrada</th><th>Salida</th><th>Hab.</th><th>Total</th><th>Estado</th></tr></thead>
     <tbody>${reservas.map(r => `<tr>
-      <td>${r.entrada}</td><td>${r.salida}</td><td>Hab.${r.hab}</td>
-      <td>${fmtMoney(r.precio * nightsBetween(r.entrada, r.salida), r.moneda)}</td>
+      <td>${r.entrada}</td><td>${r.salida}</td><td>${r.esGrupal ? '👥 ' + escapeHtml(r.grupoNombre || 'Grupo') : 'Hab.' + r.hab}</td>
+      <td>${totalFila(r)}</td>
       <td>${estadoBadge(r.estado)}</td>
     </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin reservas</td></tr>'}</tbody></table>
   `;
