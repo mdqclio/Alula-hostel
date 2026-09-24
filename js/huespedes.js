@@ -331,9 +331,10 @@ export async function deleteHuesped(id) {
     .find(g => g && g.huespedTitularId === id && g.estado !== 'cancelada');
   if (grupoActivo) {
     closeModal('modalConfirmDelete');
-    showNotif(grupoActivo.estado === 'confirmada'
-      ? `Es titular del grupo ${grupoActivo.nombre} — cancelá el grupo primero.`
-      : `Fue titular del grupo ${grupoActivo.nombre} — los huéspedes con historial grupal no se pueden eliminar.`, 'error');
+    const motivo = grupoActivo.estado === 'confirmada'
+      ? 'cancelá el grupo primero.'
+      : 'los huéspedes con historial grupal no se pueden eliminar.';
+    showNotif(`Es titular del grupo ${grupoActivo.nombre} — ${motivo}`, 'error');
     return;
   }
   const toDelete = DB.get('huespedes', []).find(h => h.id === id);
