@@ -82,6 +82,7 @@
 
       "huespedes":    { ".read": "auth != null", ".write": "auth != null" },
       "reservas":     { ".read": "auth != null", ".write": "auth != null" },
+      "grupos":       { ".read": "auth != null", ".write": "auth != null" },
       "precios":      { ".read": "auth != null", ".write": "auth != null" },
       "camasConfig":  { ".read": "auth != null", ".write": "auth != null" },
       "beds":         { ".read": "auth != null", ".write": "auth != null" },
