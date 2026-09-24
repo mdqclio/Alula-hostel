@@ -6,6 +6,11 @@ follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased] — 2026-05-26
 
 ### Added
+- **Reservas grupales** (branch `feat/reservas-grupales`, 2026-09-24): un grupo
+  con precio negociado se carga en un paso y se guarda en `alula/grupos/{id}`,
+  más N reservas hijas (una por cama, precio 0, `esGrupal`). Tiene check-in y
+  check-out grupal, pago al grupo y cancelación. Doc:
+  [`docs/reservas-grupales-informe.md`](docs/reservas-grupales-informe.md).
 - **Cloud Function `/cotizar`** ([726dac2](https://github.com/mdqclio/Alula-hostel/commit/726dac2)) —
   HTTP endpoint que envuelve el cotizador para consumo externo (mibot247 / n8n).
   Auth por header `x-api-key` (secret en GCP Secret Manager).
