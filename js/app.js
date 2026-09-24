@@ -31,7 +31,8 @@ import {
 import { renderAcct, switchAcctTab, aplicarFiltroReportes, exportarReporteCSV } from './contabilidad.js';
 import {
   renderCaja, saveMovimiento, cerrarCaja,
-  openMovimientoModal, openTransferenciaModal, saveTransferencia, renderSaldos
+  openMovimientoModal, openTransferenciaModal, saveTransferencia, renderSaldos,
+  openAnularMovimiento, confirmarAnulacion
 } from './caja.js';
 import { renderListaNegra } from './listanegra.js';
 import {
@@ -110,6 +111,7 @@ Object.assign(window, {
   // Caja / Saldos
   renderCaja, saveMovimiento, cerrarCaja,
   openMovimientoModal, openTransferenciaModal, saveTransferencia, renderSaldos,
+  openAnularMovimiento, confirmarAnulacion,
 
   // Lista negra
   renderListaNegra,

@@ -22,7 +22,7 @@ export function getGrupo(gid) {
 }
 
 // Escribe un grupo en su propio nodo (no reescribe el nodo grupos completo).
-async function guardarGrupo(g) {
+export async function guardarGrupo(g) {
   if (!cache.grupos || typeof cache.grupos !== 'object') cache.grupos = {};
   cache.grupos[g.id] = g;
   await set(ref(db, 'alula/grupos/' + g.id), g);

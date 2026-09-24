@@ -38,6 +38,23 @@ export function pagoBadge(r) {
   return `<span class="badge green">Pagado</span>`;
 }
 
+// Movimientos anulados (contra-asiento): fila atenuada/tachada, badge y
+// botón "Anular" solo para los que se pueden anular.
+export function movRowStyle(m) {
+  return m.anulado ? ' style="opacity:.5;text-decoration:line-through"' : '';
+}
+
+export function movAnulacionTag(m) {
+  if (m.anulado) return ` <span class="badge red" style="font-size:10px" title="${escapeHtml(m.motivoAnulacion || '')}">anulado</span>`;
+  if (m.anulaId) return ' <span class="badge gray" style="font-size:10px">anulación</span>';
+  return '';
+}
+
+export function movAnularBtn(m) {
+  if (m.anulado || m.anulaId || m.esTransferencia) return '';
+  return `<button class="btn btn-ghost btn-sm" onclick="openAnularMovimiento('${escapeHtml(m.id)}')" title="Anular por contra-asiento">Anular</button>`;
+}
+
 // Badge con el nombre del grupo para reservas hijas ('' si es individual).
 export function grupoTag(r) {
   return r && r.esGrupal ? `<span class="badge blue">👥 ${escapeHtml(r.grupoNombre || 'Grupo')}</span>` : '';

@@ -1,6 +1,6 @@
 // ===================== CONTABILIDAD =====================
 import { DB } from './firebase-config.js';
-import { escapeHtml, fmtMoney, openModal, showNotif, today } from './helpers.js';
+import { escapeHtml, fmtMoney, movAnulacionTag, movAnularBtn, movRowStyle, openModal, showNotif, today } from './helpers.js';
 import { getCuentas, getCategorias } from './config.js';
 
 function getCuentaNombre(id) {
@@ -9,7 +9,15 @@ function getCuentaNombre(id) {
   return c ? c.nombre : id;
 }
 
+let tabActual = 'ingresos';
+
+// Re-render de la pestaña visible (ej. después de anular un movimiento).
+export function rerenderAcct() {
+  renderAcct(tabActual);
+}
+
 export function renderAcct(tab) {
+  tabActual = tab;
   if (tab === 'reportes') { renderReportes(); return; }
 
   const movs = DB.get('movimientos', []);
@@ -48,17 +56,18 @@ export function renderAcct(tab) {
     </div>
     <div class="card">
       <table>
-        <thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Cuenta</th><th>Monto</th><th>Método</th></tr></thead>
+        <thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th>Cuenta</th><th>Monto</th><th>Método</th><th></th></tr></thead>
         <tbody>${filtered.length
-          ? filtered.sort((a, b) => b.fecha > a.fecha ? 1 : -1).map(m => `<tr>
+          ? filtered.sort((a, b) => b.fecha > a.fecha ? 1 : -1).map(m => `<tr${movRowStyle(m)}>
               <td style="font-family:'DM Mono';font-size:12px">${m.fecha}</td>
-              <td>${escapeHtml(m.concepto)}</td>
+              <td>${escapeHtml(m.concepto)}${movAnulacionTag(m)}</td>
               <td><span class="badge ${m.tipo === 'ingreso' ? 'green' : 'red'}">${escapeHtml(m.cat || '—')}</span></td>
               <td style="font-size:12px;color:var(--text3)">${escapeHtml(getCuentaNombre(m.cuenta))}</td>
               <td style="font-weight:500;color:${m.tipo === 'ingreso' ? '#34d399' : '#f87171'}">${m.tipo === 'ingreso' ? '+' : '-'}${fmtMoney(m.monto, m.moneda)}</td>
               <td style="font-size:12px;color:var(--text3)">${escapeHtml(m.metodo || '—')}</td>
+              <td>${movAnularBtn(m)}</td>
             </tr>`).join('')
-          : '<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin movimientos</td></tr>'
+          : '<tr><td colspan="7" style="text-align:center;color:var(--text3)">Sin movimientos</td></tr>'
         }</tbody>
       </table>
     </div>`;

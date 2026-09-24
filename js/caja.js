@@ -1,8 +1,10 @@
 // ===================== CAJA DIARIA =====================
 import { DB } from './firebase-config.js';
-import { closeModal, escapeHtml, fmtMoney, openModal, showNotif, today } from './helpers.js';
+import { closeModal, escapeHtml, fmtMoney, movAnulacionTag, movAnularBtn, movRowStyle, openModal, showNotif, today } from './helpers.js';
 import { getCuentas, getCategorias } from './config.js';
 import { logAuditoria } from './auditoria.js';
+import { construirAnulacion, puedeAnular, revertirPagoGrupo } from './services/movimientos.service.js';
+import { getGrupo, guardarGrupo } from './grupos.js';
 
 // ===== TIPO DE CAMBIO (bluelytics) =====
 async function fetchTC() {
@@ -107,14 +109,15 @@ export function renderCaja() {
   const getCuentaNombre = id => cuentas.find(c => c.id === id)?.nombre || '';
 
   document.getElementById('tablaCaja').innerHTML = movs.length
-    ? movs.map(m => `<tr>
+    ? movs.map(m => `<tr${movRowStyle(m)}>
         <td style="font-family:'DM Mono';font-size:12px">${m.fecha}</td>
-        <td>${escapeHtml(m.concepto)}${m.esTransferencia ? ' <span class="badge blue" style="font-size:10px">transferencia</span>' : ''}</td>
+        <td>${escapeHtml(m.concepto)}${m.esTransferencia ? ' <span class="badge blue" style="font-size:10px">transferencia</span>' : ''}${movAnulacionTag(m)}</td>
         <td><span class="badge ${m.tipo === 'ingreso' ? 'green' : 'red'}">${m.tipo}</span></td>
         <td style="font-weight:500;color:${m.tipo === 'ingreso' ? '#34d399' : '#f87171'}">${m.tipo === 'ingreso' ? '+' : '-'}${fmtMoney(m.monto, m.moneda)}</td>
         <td style="font-size:11px;color:var(--text3)">${escapeHtml(getCuentaNombre(m.cuenta) || '—')}</td>
+        <td>${movAnularBtn(m)}</td>
       </tr>`).join('')
-    : '<tr><td colspan="5" style="text-align:center;color:var(--text3)">Sin movimientos hoy</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;color:var(--text3)">Sin movimientos hoy</td></tr>';
 
   const cierres = DB.get('cierres', []);
   document.getElementById('historialCierres').innerHTML = cierres.slice(-3).reverse().map(c => `
@@ -168,6 +171,81 @@ export async function cerrarCaja() {
   await logAuditoria('crear', 'cierre', tod, `Cierre de caja ${tod}: balance ARS ${ingARS - egARS}, USD ${ingUSD}`, null, { fecha: tod, balanceARS: ingARS - egARS, balanceUSD: ingUSD });
   renderCaja();
   showNotif('✅ Caja cerrada correctamente');
+}
+
+// ===== ANULACIÓN (contra-asiento) =====
+export function openAnularMovimiento(id) {
+  const m = DB.get('movimientos', []).find(x => x.id === id);
+  const check = puedeAnular(m);
+  if (!check.ok) { showNotif(check.error, 'error'); return; }
+  const g = m.grupoId ? getGrupo(m.grupoId) : null;
+  document.getElementById('anu-mov-id').value = id;
+  document.getElementById('anu-motivo').value = '';
+  document.getElementById('anu-resumen').innerHTML = `
+    <div style="margin-bottom:6px"><strong>${escapeHtml(m.concepto)}</strong></div>
+    <div style="color:var(--text2)">${escapeHtml(m.fecha)} · ${m.tipo === 'ingreso' ? 'Ingreso' : 'Egreso'} · <strong style="color:${m.tipo === 'ingreso' ? '#34d399' : '#f87171'}">${fmtMoney(m.monto, m.moneda)}</strong></div>
+    ${m.grupoId ? `<div style="margin-top:6px;color:#fbbf24;font-size:12px">Pago del grupo ${escapeHtml(g?.nombre || m.grupoId)}: se devuelve ${fmtMoney(m.monto, m.moneda)} al saldo del grupo.</div>` : ''}`;
+  openModal('modalAnularMovimiento');
+}
+
+let anulando = false;
+export async function confirmarAnulacion() {
+  if (anulando) return;
+  const id = document.getElementById('anu-mov-id').value;
+  const motivo = document.getElementById('anu-motivo').value;
+  const movs = DB.get('movimientos', []);
+  const idx = movs.findIndex(x => x.id === id);
+  const mov = movs[idx];
+  const res = construirAnulacion(mov, { motivo, id: 'm' + Date.now(), fecha: today() });
+  if (!res.ok) { showNotif(res.error, 'error'); return; }
+
+  // Pago de grupo: validar la reversión antes de escribir nada.
+  let grupo = null, rev = null;
+  if (mov.grupoId) {
+    grupo = getGrupo(mov.grupoId);
+    rev = revertirPagoGrupo(grupo, mov);
+    if (!rev.ok) { showNotif(rev.error, 'error'); return; }
+  }
+
+  anulando = true;
+  const btn = document.getElementById('btnConfirmarAnulacion');
+  if (btn) btn.disabled = true;
+  try {
+    if (grupo) {
+      const antesGrupo = { pagado: grupo.pagado, saldo: grupo.saldo };
+      grupo.pagado = rev.pagado;
+      grupo.saldo = rev.saldo;
+      await guardarGrupo(grupo);
+      logAuditoria('editar', 'grupo', grupo.id,
+        `Pago grupal revertido por anulación: ${fmtMoney(mov.monto, mov.moneda)} — ${grupo.nombre}. Motivo: ${res.original.motivoAnulacion}`,
+        antesGrupo, { pagado: grupo.pagado, saldo: grupo.saldo });
+    }
+    movs[idx] = res.original;
+    movs.push(res.espejo);
+    await DB.set('movimientos', movs);
+    logAuditoria('editar', 'movimiento', mov.id,
+      `Movimiento anulado: ${mov.tipo} ${fmtMoney(mov.monto, mov.moneda)} — ${mov.concepto}. Motivo: ${res.original.motivoAnulacion}. Contra-asiento ${res.espejo.id}`,
+      mov, res.original);
+    closeModal('modalAnularMovimiento');
+    await refrescarMovimientos();
+    showNotif('Movimiento anulado');
+  } catch (e) {
+    console.error('[caja] error anulando movimiento:', e);
+    showNotif('No se pudo anular el movimiento. Revisá la conexión.', 'error');
+  } finally {
+    anulando = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Re-render de las vistas que listan movimientos, solo si están montadas.
+async function refrescarMovimientos() {
+  if (document.getElementById('tablaCaja')) renderCaja();
+  if (document.getElementById('acctContent')) {
+    const { rerenderAcct } = await import('./contabilidad.js');
+    rerenderAcct();
+  }
+  if (document.getElementById('saldosContent')) renderSaldos();
 }
 
 // ===== TRANSFERENCIAS INTERNAS =====
