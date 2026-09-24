@@ -117,11 +117,12 @@ nunca generan movimientos.
 - **Deploy de reglas pendiente (dueño).** Mientras las reglas endurecidas no se
   desplieguen, rige la regla vieja `auth != null` para todo y `grupos` funciona
   igual. Cuando se desplieguen, `grupos` ya queda incluido.
-- **Borrar al titular** (Huéspedes → borrar) queda bloqueado si es titular de
-  un grupo que no está `cancelada`. Aparece el aviso "Es titular del grupo X —
-  cancelá el grupo primero". Ojo: como solo se puede cancelar un grupo en
-  `confirmada`, el titular de un grupo en `checkin` o `checkout` hoy no se
-  puede borrar.
+- **Borrar al titular** (Huéspedes → borrar) queda bloqueado mientras sea
+  titular de algún grupo que no esté `cancelada`. El aviso depende del estado:
+  - `confirmada`: "Es titular del grupo X — cancelá el grupo primero."
+  - `checkin` / `checkout`: "Fue titular del grupo X — los huéspedes con
+    historial grupal no se pueden eliminar." Se hizo así a propósito, para no
+    perder el vínculo entre el grupo y su titular.
 - No hay pantalla para **editar** un grupo (fechas, camas, total). Para cambiarlo
   hoy: cancelar y volver a crear.
 - No hay lista propia de grupos: al detalle se entra desde cualquier hija
