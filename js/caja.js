@@ -3,7 +3,7 @@ import { DB } from './firebase-config.js';
 import { closeModal, escapeHtml, fmtMoney, movAnulacionTag, movAnularBtn, movRowStyle, openModal, showNotif, today } from './helpers.js';
 import { getCuentas, getCategorias, cuentasOptions } from './config.js';
 import { logAuditoria } from './auditoria.js';
-import { construirAnulacion, puedeAnular, revertirPagoGrupo, revertirPagoReserva, validarCuentaMovimiento } from './services/movimientos.service.js';
+import { construirAnulacion, puedeAnular, revertirPagoGrupo, revertirPagoReserva, totalesMovimientos, validarCuentaMovimiento } from './services/movimientos.service.js';
 import { getGrupo, guardarGrupo } from './grupos.js';
 
 // ===== TIPO DE CAMBIO (bluelytics) =====
@@ -92,14 +92,12 @@ export function renderCaja() {
   const tod = today();
   document.getElementById('mov-fecha').value = tod;
   const movs = DB.get('movimientos', []).filter(m => m.fecha === tod);
-  const ingARS = movs.filter(m => m.tipo === 'ingreso' && m.moneda === 'ARS').reduce((a, b) => a + Number(b.monto), 0);
-  const ingUSD = movs.filter(m => m.tipo === 'ingreso' && m.moneda === 'USD').reduce((a, b) => a + Number(b.monto), 0);
-  const egARS  = movs.filter(m => m.tipo === 'egreso'  && m.moneda === 'ARS').reduce((a, b) => a + Number(b.monto), 0);
-  document.getElementById('caja-ingresos').textContent = fmtMoney(ingARS);
-  document.getElementById('caja-ingresos-usd').textContent = 'USD ' + ingUSD.toLocaleString('es-AR');
-  document.getElementById('caja-egresos').textContent = fmtMoney(egARS);
-  document.getElementById('caja-balance').textContent = fmtMoney(ingARS - egARS);
-  document.getElementById('caja-balance-usd').textContent = 'USD ' + ingUSD.toLocaleString('es-AR');
+  const t = totalesMovimientos(movs);
+  document.getElementById('caja-ingresos').textContent = fmtMoney(t.ingARS);
+  document.getElementById('caja-ingresos-usd').textContent = 'USD ' + t.ingUSD.toLocaleString('es-AR');
+  document.getElementById('caja-egresos').textContent = fmtMoney(t.egARS);
+  document.getElementById('caja-balance').textContent = fmtMoney(t.netoARS);
+  document.getElementById('caja-balance-usd').textContent = 'USD ' + t.netoUSD.toLocaleString('es-AR');
 
   const cuentas = getCuentas();
   const getCuentaNombre = id => cuentas.find(c => c.id === id)?.nombre || '';
@@ -155,19 +153,17 @@ export function saveMovimiento() {
 export async function cerrarCaja() {
   const tod = today();
   const movs = DB.get('movimientos', []).filter(m => m.fecha === tod);
-  const ingARS = movs.filter(m => m.tipo === 'ingreso' && m.moneda === 'ARS').reduce((a, b) => a + Number(b.monto), 0);
-  const egARS  = movs.filter(m => m.tipo === 'egreso'  && m.moneda === 'ARS').reduce((a, b) => a + Number(b.monto), 0);
-  const ingUSD = movs.filter(m => m.tipo === 'ingreso' && m.moneda === 'USD').reduce((a, b) => a + Number(b.monto), 0);
+  const { netoARS, netoUSD } = totalesMovimientos(movs);
   const cierres = DB.get('cierres', []);
   cierres.push({
     fecha: tod,
-    balanceARS: ingARS - egARS,
-    balanceUSD: ingUSD,
+    balanceARS: netoARS,
+    balanceUSD: netoUSD,
     tc:  document.getElementById('cajaTipoCambio').value,
     obs: document.getElementById('cajaObs').value
   });
   DB.set('cierres', cierres);
-  await logAuditoria('crear', 'cierre', tod, `Cierre de caja ${tod}: balance ARS ${ingARS - egARS}, USD ${ingUSD}`, null, { fecha: tod, balanceARS: ingARS - egARS, balanceUSD: ingUSD });
+  await logAuditoria('crear', 'cierre', tod, `Cierre de caja ${tod}: balance ARS ${netoARS}, USD ${netoUSD}`, null, { fecha: tod, balanceARS: netoARS, balanceUSD: netoUSD });
   renderCaja();
   showNotif('✅ Caja cerrada correctamente');
 }

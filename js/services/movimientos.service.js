@@ -108,3 +108,31 @@ export function validarCuentaMovimiento(cuentaId, cuentas = []) {
   if (!c || c.activa === false) return { ok: false, error: 'La cuenta elegida no existe o está inactiva' };
   return { ok: true };
 }
+
+// ¿Es parte de un par de anulación (el original anulado o su espejo)?
+export function esParAnulacion(m) {
+  return !!(m && (m.anulado || m.anulaId));
+}
+
+// Movimientos que cuentan para totales brutos (sin anulados ni espejos).
+export function sinAnulaciones(movs = []) {
+  return movs.filter(m => !esParAnulacion(m));
+}
+
+// Totales por moneda. Los brutos excluyen los pares de anulación; el neto
+// usa todos los movimientos, así no cambia aunque original y espejo caigan
+// en días o períodos distintos (el par suma cero en conjunto).
+export function totalesMovimientos(movs = []) {
+  const suma = (lista, tipo, moneda) => lista
+    .filter(m => m.tipo === tipo && m.moneda === moneda)
+    .reduce((s, m) => s + Number(m.monto), 0);
+  const validos = sinAnulaciones(movs);
+  return {
+    ingARS: suma(validos, 'ingreso', 'ARS'),
+    ingUSD: suma(validos, 'ingreso', 'USD'),
+    egARS:  suma(validos, 'egreso', 'ARS'),
+    egUSD:  suma(validos, 'egreso', 'USD'),
+    netoARS: suma(movs, 'ingreso', 'ARS') - suma(movs, 'egreso', 'ARS'),
+    netoUSD: suma(movs, 'ingreso', 'USD') - suma(movs, 'egreso', 'USD'),
+  };
+}

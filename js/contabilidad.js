@@ -2,6 +2,7 @@
 import { DB } from './firebase-config.js';
 import { escapeHtml, fmtMoney, movAnulacionTag, movAnularBtn, movRowStyle, openModal, showNotif, today } from './helpers.js';
 import { getCuentas, getCategorias } from './config.js';
+import { sinAnulaciones, totalesMovimientos } from './services/movimientos.service.js';
 
 function getCuentaNombre(id) {
   if (!id) return 'Sin cuenta';
@@ -30,17 +31,14 @@ export function renderAcct(tab) {
       const d = new Date(m.fecha);
       return d.getMonth() === mes && d.getFullYear() === year && !m.esTransferencia;
     });
-    const ingARS = mm.filter(m => m.tipo === 'ingreso' && m.moneda === 'ARS').reduce((a, b) => a + Number(b.monto), 0);
-    const ingUSD = mm.filter(m => m.tipo === 'ingreso' && m.moneda === 'USD').reduce((a, b) => a + Number(b.monto), 0);
-    const egARS  = mm.filter(m => m.tipo === 'egreso'  && m.moneda === 'ARS').reduce((a, b) => a + Number(b.monto), 0);
-    const bal = ingARS - egARS;
+    const { ingARS, ingUSD, egARS, netoARS: bal } = totalesMovimientos(mm);
     c.innerHTML = `
       <div class="acct-grid">
         <div class="stat-card green"><div class="label">Ingresos ARS (mes)</div><div class="value">${fmtMoney(ingARS)}</div></div>
         <div class="stat-card green"><div class="label">Ingresos USD (mes)</div><div class="value">USD ${ingUSD.toLocaleString('es-AR')}</div></div>
         <div class="stat-card red"><div class="label">Egresos ARS (mes)</div><div class="value">${fmtMoney(egARS)}</div></div>
         <div class="stat-card blue"><div class="label">Balance neto ARS</div><div class="value">${fmtMoney(bal)}</div></div>
-        <div class="stat-card amber"><div class="label">Transacciones</div><div class="value">${mm.length}</div></div>
+        <div class="stat-card amber"><div class="label">Transacciones</div><div class="value">${sinAnulaciones(mm).length}</div></div>
       </div>`;
     return;
   }
@@ -152,12 +150,7 @@ export function aplicarFiltroReportes() {
   if (tipo)   movs = movs.filter(m => m.tipo === tipo);
   movs.sort((a, b) => b.fecha > a.fecha ? 1 : -1);
 
-  const ingARS = movs.filter(m => m.tipo === 'ingreso' && m.moneda === 'ARS').reduce((s, m) => s + Number(m.monto), 0);
-  const ingUSD = movs.filter(m => m.tipo === 'ingreso' && m.moneda === 'USD').reduce((s, m) => s + Number(m.monto), 0);
-  const egARS  = movs.filter(m => m.tipo === 'egreso'  && m.moneda === 'ARS').reduce((s, m) => s + Number(m.monto), 0);
-  const egUSD  = movs.filter(m => m.tipo === 'egreso'  && m.moneda === 'USD').reduce((s, m) => s + Number(m.monto), 0);
-  const balARS = ingARS - egARS;
-  const balUSD = ingUSD - egUSD;
+  const { ingARS, ingUSD, egARS, egUSD, netoARS: balARS, netoUSD: balUSD } = totalesMovimientos(movs);
 
   const box = (label, val, color) =>
     `<div style="background:${color}1a;border:1px solid ${color}33;border-radius:var(--radius);padding:12px;">
@@ -209,7 +202,7 @@ export function exportarReporteCSV() {
   if (tipo)   movs = movs.filter(m => m.tipo === tipo);
   movs.sort((a, b) => b.fecha > a.fecha ? 1 : -1);
 
-  const headers = ['Fecha','Cuenta','Categoría','Concepto','Tipo','Monto','Moneda','Método','TC','Equivalente ARS'];
+  const headers = ['Fecha','Cuenta','Categoría','Concepto','Tipo','Monto','Moneda','Método','TC','Equivalente ARS','Anulación'];
   const rows = movs.map(m => [
     m.fecha,
     getCuentaNombre(m.cuenta),
@@ -221,6 +214,8 @@ export function exportarReporteCSV() {
     m.metodo || '',
     m.tcARS || '',
     m.equivalenteARS || (m.moneda === 'ARS' ? m.monto : ''),
+    // Para que el CSV no infle totales: el par anulado + espejo suma cero.
+    m.anulado ? 'anulado: ' + (m.motivoAnulacion || '') : (m.anulaId ? 'anula ' + m.anulaId : ''),
   ]);
 
   const csv = '\ufeff' + [headers, ...rows]

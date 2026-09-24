@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { puedeAnular, construirAnulacion, revertirPagoGrupo, revertirPagoReserva, estadoPagoReserva, validarCuentaMovimiento } from './movimientos.service.js';
+import { puedeAnular, construirAnulacion, revertirPagoGrupo, revertirPagoReserva, estadoPagoReserva, validarCuentaMovimiento, esParAnulacion, sinAnulaciones, totalesMovimientos } from './movimientos.service.js';
 import { aplicarPagoGrupo } from './grupos.service.js';
 
 const ingreso = {
@@ -182,5 +182,44 @@ describe('validarCuentaMovimiento', () => {
   it('cuenta inexistente o inactiva → error', () => {
     expect(validarCuentaMovimiento('c9', cuentas).ok).toBe(false);
     expect(validarCuentaMovimiento('c2', cuentas).ok).toBe(false);
+  });
+});
+
+describe('filtro de anulaciones y totales', () => {
+  const mk = (id, tipo, moneda, monto, extra = {}) => ({ id, tipo, moneda, monto, cat: 'Otros', concepto: id, ...extra });
+  const venta = mk('a', 'ingreso', 'ARS', 1000);
+  const gasto = mk('b', 'egreso', 'ARS', 300);
+  const usdIn = mk('c', 'ingreso', 'USD', 100);
+  const usdOut = mk('d', 'egreso', 'USD', 40);
+  const { original, espejo } = construirAnulacion(mk('e', 'ingreso', 'ARS', 5000), { motivo: 'error', id: 'f', fecha: '2026-09-24' });
+
+  it('esParAnulacion reconoce original anulado y espejo', () => {
+    expect(esParAnulacion(original)).toBe(true);
+    expect(esParAnulacion(espejo)).toBe(true);
+    expect(esParAnulacion(venta)).toBe(false);
+    expect(esParAnulacion(null)).toBe(false);
+  });
+
+  it('sinAnulaciones deja solo los movimientos vigentes', () => {
+    expect(sinAnulaciones([venta, original, espejo, gasto]).map(m => m.id)).toEqual(['a', 'b']);
+  });
+
+  it('brutos excluyen el par; el neto no cambia', () => {
+    const conPar = totalesMovimientos([venta, gasto, original, espejo]);
+    const sinPar = totalesMovimientos([venta, gasto]);
+    expect(conPar).toEqual(sinPar);
+    expect(conPar).toMatchObject({ ingARS: 1000, egARS: 300, netoARS: 700 });
+  });
+
+  it('neto con solo una pata del par en el período (anulación otro día) usa todos los movimientos', () => {
+    expect(totalesMovimientos([venta, espejo])).toMatchObject({ ingARS: 1000, egARS: 0, netoARS: -4000 });
+  });
+
+  it('neto USD resta egresos USD', () => {
+    expect(totalesMovimientos([usdIn, usdOut])).toMatchObject({ ingUSD: 100, egUSD: 40, netoUSD: 60 });
+  });
+
+  it('lista vacía → todo en cero', () => {
+    expect(totalesMovimientos([])).toEqual({ ingARS: 0, ingUSD: 0, egARS: 0, egUSD: 0, netoARS: 0, netoUSD: 0 });
   });
 });

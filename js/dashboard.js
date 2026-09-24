@@ -2,6 +2,7 @@
 import { DB } from './firebase-config.js';
 import { today, fmtMoney, platBadge, pagoBadge, dateToLocal, escapeHtml, grupoTag } from './helpers.js';
 import { getTotalCamas, camaLabel } from './config.js';
+import { totalesMovimientos } from './services/movimientos.service.js';
 
 function getHuespedNombre(id) {
   const h = DB.get('huespedes', []).find(x => x.id === id);
@@ -16,9 +17,8 @@ export function renderDashboard() {
   document.getElementById('stat-occ').textContent = `${occupied}/${_total}`;
   document.getElementById('stat-occ-pct').textContent = Math.round(occupied / _total * 100) + '% ocupación';
 
-  const todayMovs = DB.get('movimientos', []).filter(m => m.fecha === tod && m.tipo === 'ingreso');
-  const ingARS = todayMovs.filter(m => m.moneda === 'ARS').reduce((a, b) => a + Number(b.monto), 0);
-  const ingUSD = todayMovs.filter(m => m.moneda === 'USD').reduce((a, b) => a + Number(b.monto), 0);
+  // Ingresos brutos del día, sin movimientos anulados ni sus contra-asientos.
+  const { ingARS, ingUSD } = totalesMovimientos(DB.get('movimientos', []).filter(m => m.fecha === tod));
   document.getElementById('stat-today-income').textContent = fmtMoney(ingARS);
   document.getElementById('stat-today-income-usd').textContent = 'USD ' + ingUSD.toLocaleString('es-AR');
 
