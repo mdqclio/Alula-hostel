@@ -326,6 +326,14 @@ export function confirmDelete(tipo, id, nombre) {
 }
 
 export async function deleteHuesped(id) {
+  // Borrarlo se llevaría las reservas hijas y dejaría el grupo huérfano.
+  const grupoActivo = Object.values(DB.get('grupos', {}) || {})
+    .find(g => g && g.huespedTitularId === id && g.estado !== 'cancelada');
+  if (grupoActivo) {
+    closeModal('modalConfirmDelete');
+    showNotif(`Es titular del grupo ${grupoActivo.nombre} — cancelá el grupo primero`, 'error');
+    return;
+  }
   const toDelete = DB.get('huespedes', []).find(h => h.id === id);
   const huespedes = DB.get('huespedes', []).filter(h => h.id !== id);
   const reservas  = DB.get('reservas',  []).filter(r => r.huespedId !== id);
