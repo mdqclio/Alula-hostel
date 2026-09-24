@@ -38,6 +38,26 @@ describe('validarGrupo', () => {
     expect(validarGrupo({ ...base, camas: ['1-1', '1-1'] }).ok).toBe(false);
   });
 
+  it('seña vacía, undefined o 0 → ok (sin seña)', () => {
+    expect(validarGrupo({ ...base, senia: '' }).ok).toBe(true);
+    expect(validarGrupo({ ...base, senia: undefined }).ok).toBe(true);
+    expect(validarGrupo({ ...base, senia: 0 }).ok).toBe(true);
+  });
+
+  it('seña igual al total → ok', () => {
+    expect(validarGrupo({ ...base, senia: 750000 }).ok).toBe(true);
+  });
+
+  it('seña mayor al total → error', () => {
+    expect(validarGrupo({ ...base, senia: 750001 }).errores)
+      .toContain('La seña no puede superar el total acordado');
+  });
+
+  it('seña negativa o no numérica → error', () => {
+    expect(validarGrupo({ ...base, senia: -1 }).errores).toContain('La seña debe ser un monto válido');
+    expect(validarGrupo({ ...base, senia: 'abc' }).ok).toBe(false);
+  });
+
   it('total 0, negativo o no numérico → error', () => {
     for (const t of [0, -5, 'abc', undefined]) {
       expect(validarGrupo({ ...base, totalAcordado: t }).errores)

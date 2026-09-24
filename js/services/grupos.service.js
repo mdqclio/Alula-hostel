@@ -9,7 +9,8 @@ const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Valida los datos de alta de un grupo contra las reservas existentes.
 // Devuelve { ok, errores: string[], camasOcupadas: string[] }.
-export function validarGrupo({ nombre, huespedTitularId, entrada, salida, camas, totalAcordado, reservas = [] } = {}) {
+// `senia` es opcional: vacío/0 = sin seña; si viene, 0 <= senia <= totalAcordado.
+export function validarGrupo({ nombre, huespedTitularId, entrada, salida, camas, totalAcordado, senia, reservas = [] } = {}) {
   const errores = [];
   const camasOcupadas = [];
 
@@ -29,6 +30,12 @@ export function validarGrupo({ nombre, huespedTitularId, entrada, salida, camas,
 
   const total = Number(totalAcordado);
   if (!Number.isFinite(total) || total <= 0) errores.push('El total acordado debe ser mayor a 0');
+
+  if (senia !== undefined && senia !== null && senia !== '') {
+    const s = Number(senia);
+    if (!Number.isFinite(s) || s < 0) errores.push('La seña debe ser un monto válido');
+    else if (Number.isFinite(total) && s > total) errores.push('La seña no puede superar el total acordado');
+  }
 
   if (fechasOk && salida > entrada) {
     for (const c of lista) {

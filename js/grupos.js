@@ -6,7 +6,7 @@
 import { ref, set } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-database.js";
 import { DB, db, cache } from './firebase-config.js';
 import { closeModal, escapeHtml, estadoBadge, fmtMoney, nightsBetween, openModal, showNotif, today } from './helpers.js';
-import { getConfig, habBeds, camaLabel, metodosOptions } from './config.js';
+import { getConfig, getCuentas, habBeds, camaLabel, metodosOptions } from './config.js';
 import { validarGrupo, construirReservasHijas, aplicarPagoGrupo } from './services/grupos.service.js';
 import { logAuditoria } from './auditoria.js';
 
@@ -60,12 +60,17 @@ export function openReservaGrupal() {
     '<option value="">Seleccionar...</option>' +
     `<option value="${NUEVO_TITULAR}">+ Alta rápida de titular</option>` +
     huespedes.map(h => `<option value="${h.id}">${escapeHtml(h.nombre)} ${escapeHtml(h.apellido)} — ${escapeHtml(h.dni)}</option>`).join('');
-  ['grp-nombre', 'grp-entrada', 'grp-salida', 'grp-total', 'grp-integrantes', 'grp-obs',
+  ['grp-nombre', 'grp-entrada', 'grp-salida', 'grp-total', 'grp-senia', 'grp-integrantes', 'grp-obs',
    'grp-tit-nombre', 'grp-tit-apellido', 'grp-tit-dni'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
   document.getElementById('grp-moneda').value = 'ARS';
+  document.getElementById('grp-senia-metodo').innerHTML = metodosOptions('efectivo');
+  document.getElementById('grp-senia-cuenta').innerHTML = '<option value="">Sin asignar</option>' +
+    getCuentas().filter(c => c.activa).map(c =>
+      `<option value="${escapeHtml(c.id)}">${escapeHtml(c.nombre)} (${escapeHtml(c.moneda)})</option>`
+    ).join('');
   toggleTitularNuevo();
   renderGrupoCamas();
   openModal('modalReservaGrupal');
@@ -144,6 +149,7 @@ export async function saveReservaGrupal() {
     salida: document.getElementById('grp-salida').value,
     camas: [...document.querySelectorAll('.grp-cama-chk:checked')].map(c => c.value),
     totalAcordado: Number(document.getElementById('grp-total').value),
+    senia: document.getElementById('grp-senia').value,
     reservas: DB.get('reservas', []),
   };
   const v = validarGrupo(datos);
@@ -186,6 +192,22 @@ export async function saveReservaGrupal() {
       obs: document.getElementById('grp-obs').value,
       estado: 'confirmada',
     };
+    // Seña opcional: mismo efecto que "Pago al grupo" (pagado/saldo + movimiento con grupoId).
+    const senia = Math.round(Number(datos.senia) || 0);
+    let movSenia = null;
+    if (senia > 0) {
+      const res = aplicarPagoGrupo(grupo, senia);
+      if (!res.ok) { showNotif(res.error, 'error'); return; }
+      grupo.pagado = res.pagado;
+      grupo.saldo = res.saldo;
+      movSenia = {
+        id: 'm' + Date.now(), tipo: 'ingreso', cat: 'reserva', moneda: grupo.moneda, monto: senia,
+        metodo: document.getElementById('grp-senia-metodo').value, fecha: today(),
+        concepto: `Seña grupo ${grupo.nombre}`,
+        cuenta: document.getElementById('grp-senia-cuenta').value || null,
+        grupoId: grupo.id,
+      };
+    }
     await guardarGrupo(grupo);
     const reservas = DB.get('reservas', []);
     reservas.push(...construirReservasHijas(grupo));
@@ -194,6 +216,12 @@ export async function saveReservaGrupal() {
     logAuditoria('crear', 'grupo', grupo.id,
       `Nueva reserva grupal: ${grupo.nombre} — ${grupo.camas.length} camas ${grupo.entrada}→${grupo.salida}, total ${fmtMoney(total, grupo.moneda)}`,
       null, grupo);
+    if (movSenia) {
+      const movs = DB.get('movimientos', []);
+      movs.push(movSenia);
+      await DB.set('movimientos', movs);
+      logAuditoria('editar', 'grupo', grupo.id, `Pago grupal registrado (seña): ${fmtMoney(senia, grupo.moneda)} — ${grupo.nombre}`);
+    }
     closeModal('modalReservaGrupal');
     await refrescarVistas();
     showNotif(`👥 Grupo creado: ${grupo.nombre} (${grupo.camas.length} camas)`);
